@@ -66,6 +66,31 @@ Verbund-Regel (Entscheidung Dietmar 23.07.2026, ersetzt jede frühere „keine E
 Kein Symcon-Store-Review hat Emojis je beanstandet. **Beobachtungsklausel:** sollte ein
 Stable-Review sie doch bemängeln, entscheidet der Verbund neu (Rückfall: gemeinsam emoji-frei).
 
+## Formular-Konvention (NRG-Stack-Optik, 24.07.2026, Referenz InverterHub)
+
+Aufbau von oben nach unten in `GetConfigurationForm()`:
+
+1. **„🆕 Neu in Version X.Y"** — `ExpansionPanel` `name: NewsPanel`, aufgeklappt, ganz oben
+   (`array_unshift`). Inhalt aus `private const NEWS_ITEMS` des jeweiligen Moduls. Dismissible
+   **pro Version** über Attribut `SeenNews` (`SGW_AckNews`/`SGWTILE_AckNews`) — erscheint bei
+   jeder neuen `MODULE_VERSION` wieder, keine Versionsnummer im Panel-Titel selbst.
+2. **„📖 Dokumentation & Hilfe"** — `ExpansionPanel` `name: DocPanel`, eingeklappt. Hier steht die
+   Versionsnummer im Titel (`… (v1.5.0)`), wird in `GetConfigurationForm()` gepatcht.
+3. Fachpanels. Neue/wichtige Felder bekommen `🆕` als Präfix im Label.
+4. Symcon-Forum-Hinweis (`ReviewHint`) — am Ende der Elemente-Liste (`$form['elements'][] = …`),
+   dismissible einmalig (nicht pro Version).
+
+**Pflegepflicht bei JEDEM Fix/Update, nicht nur großen Releases** (Dietmar, 24.07.2026): Bei
+jeder Änderung prüfen, ob `MODULE_VERSION`/`NEWS_ITEMS` etwas brauchen und ob ein neues Feld ein
+`🆕` verdient — das Ergebnis darf „nein" sein, aber die Prüfung muss jedes Mal stattfinden, sonst
+zeigt das News-Panel nichts oder Veraltetes an (`MODULE_VERSION` synct nicht automatisch mit
+`module.json`/`library.json`).
+
+**Layout-Qualität generell** (Dietmar, 24.07.2026): logische Gruppierung zusammengehöriger
+Felder, Step-by-Step-Reihenfolge ohne Scroll-Zickzack (kein Hin- und Herspringen zwischen weit
+auseinanderliegenden Formularteilen für einen zusammenhängenden Vorgang), Feldkanten sauber auf
+einer Linie statt kreuz und quer. Details siehe SUITE.md.
+
 ## Zweige
 
 - `beta` — Entwicklung und schnelle Auslieferung an Dietmar und seinen Testerkreis. **Hier entwickeln und pushen.**
