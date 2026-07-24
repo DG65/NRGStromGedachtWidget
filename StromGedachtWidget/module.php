@@ -12,6 +12,15 @@ class StromGedachtWidget extends IPSModule
 
     private const COLOR_GREY = '#9e9e9e';
 
+    // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
+    // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
+    private const MODULE_VERSION = '1.5.0';
+    private const NEWS_ITEMS = [
+        'Neue Funktionen SGW_GetState()/SGW_GetForecast() für andere Module des NRG-Stack (z. B. EMS) — Grundlage für automatische netzdienliche Steuerung.',
+        'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
+        'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
+    ];
+
     // Zustände laut StromGedacht API:
     // -1 = Supergrün, 1 = Grün, 2 = Gelb (veraltet), 3 = Orange, 4 = Rot
     private const SG_COLORS = [
@@ -74,6 +83,7 @@ class StromGedachtWidget extends IPSModule
 
         $this->RegisterAttributeString('RuleState', '{}');
         $this->RegisterAttributeBoolean('ReviewHintDismissed', false);
+        $this->RegisterAttributeString('SeenNews', '');
 
         // Profile bewusst getrennt je Datenquelle
         if (!IPS_VariableProfileExists('SGW.State')) {
@@ -168,7 +178,8 @@ class StromGedachtWidget extends IPSModule
 
         $sourceOptions = $this->getAutomationSourceOptions();
 
-        // Datenpunkt-Optionen der Automationsliste befüllen (liegt in einem ExpansionPanel)
+        // Datenpunkt-Optionen der Automationsliste befüllen (liegt in einem ExpansionPanel),
+        // Versionsnummer ins Doku-Panel patchen (Formular-Konvention des NRG-Stack)
         $patch = function (array &$elements) use (&$patch, $sourceOptions) {
             foreach ($elements as &$element) {
                 if (!is_array($element)) {
@@ -181,6 +192,9 @@ class StromGedachtWidget extends IPSModule
                         }
                     }
                     unset($col);
+                }
+                if (($element['name'] ?? '') === 'DocPanel') {
+                    $element['caption'] = '📖 Dokumentation & Hilfe (v' . self::MODULE_VERSION . ')';
                 }
                 if (isset($element['items']) && is_array($element['items'])) {
                     $patch($element['items']);
@@ -214,12 +228,40 @@ class StromGedachtWidget extends IPSModule
             ];
         }
 
+        // "🆕 Neu in Version X.Y"-Panel ganz oben: erscheint bis zur Bestätigung, danach je
+        // Version erneut (Attribut speichert die zuletzt bestätigte Version)
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
         return json_encode($form);
+    }
+
+    /** "🆕 Neu in Version"-Panel: null, wenn der Nutzer diese Version schon bestätigt hat. */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString('SeenNews') === self::MODULE_VERSION) {
+            return null;
+        }
+        $items = [['type' => 'Label', 'caption' => '🆕 Neu in diesem Modul — bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        foreach (self::NEWS_ITEMS as $line) {
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        }
+        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::MODULE_VERSION, 'expanded' => true, 'items' => $items];
+    }
+
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString('SeenNews', self::MODULE_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
     }
 
     public function DismissReviewHint(): void
     {
         $this->WriteAttributeBoolean('ReviewHintDismissed', true);
+        $this->UpdateFormField('ReviewHint', 'visible', false);
     }
 
     public function Update()

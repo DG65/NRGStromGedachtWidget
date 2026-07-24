@@ -2,6 +2,7 @@
     "elements": [
         {
             "type": "ExpansionPanel",
+            "name": "DocPanel",
             "caption": "📖 Dokumentation & Hilfe",
             "expanded": false,
             "items": [

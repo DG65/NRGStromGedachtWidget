@@ -55,11 +55,20 @@ class StromGedachtTile extends IPSModule
     private const DEF_FONT       = 'system';
     private const DEF_SCALE      = 1.0;
 
+    // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
+    // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
+    private const MODULE_VERSION = '1.5.0';
+    private const NEWS_ITEMS = [
+        'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
+        'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
+    ];
+
     public function Create()
     {
         //Never delete this line!
         parent::Create();
 
+        $this->RegisterAttributeString('SeenNews', '');
         $this->RegisterPropertyInteger('SourceInstance', 0);
         $this->RegisterPropertyBoolean('AdoptWidgetName', true);
         $this->RegisterPropertyInteger('ColorSuperGreen', self::DEF_SUPERGREEN);
@@ -133,7 +142,47 @@ class StromGedachtTile extends IPSModule
 
     public function GetConfigurationForm()
     {
-        return file_get_contents(__DIR__ . '/form.json');
+        $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
+        if (!is_array($form)) {
+            $form = ['elements' => [], 'actions' => [], 'status' => []];
+        }
+
+        // Versionsnummer ins Doku-Panel patchen (Formular-Konvention des NRG-Stack)
+        foreach ($form['elements'] as &$element) {
+            if (is_array($element) && ($element['name'] ?? '') === 'DocPanel') {
+                $element['caption'] = '📖 Dokumentation & Hilfe (v' . self::MODULE_VERSION . ')';
+            }
+        }
+        unset($element);
+
+        // "🆕 Neu in Version X.Y"-Panel ganz oben: erscheint bis zur Bestätigung, danach je
+        // Version erneut (Attribut speichert die zuletzt bestätigte Version)
+        $banner = $this->newsBanner();
+        if ($banner !== null) {
+            array_unshift($form['elements'], $banner);
+        }
+
+        return json_encode($form);
+    }
+
+    /** "🆕 Neu in Version"-Panel: null, wenn der Nutzer diese Version schon bestätigt hat. */
+    private function newsBanner(): ?array
+    {
+        if ($this->ReadAttributeString('SeenNews') === self::MODULE_VERSION) {
+            return null;
+        }
+        $items = [['type' => 'Label', 'caption' => '🆕 Neu in diesem Modul — bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        foreach (self::NEWS_ITEMS as $line) {
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+        }
+        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGWTILE_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::MODULE_VERSION, 'expanded' => true, 'items' => $items];
+    }
+
+    public function AckNews(): void
+    {
+        $this->WriteAttributeString('SeenNews', self::MODULE_VERSION);
+        $this->UpdateFormField('NewsPanel', 'visible', false);
     }
 
     /**
