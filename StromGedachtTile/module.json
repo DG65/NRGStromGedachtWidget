@@ -1,9 +1,11 @@
 {
     "id": "{E9B65213-BA33-426D-8486-D350A7DFCFEF}",
-    "name": "StromGedachtTile",
+    "name": "NRGStromGedachtTile",
     "type": 3,
     "vendor": "TransnetBW GmbH",
     "aliases": [
+        "StromGedachtTile",
+        "NRGStromGedachtTile",
         "StromGedacht Ampel-Kachel"
     ],
     "url": "https://github.com/DG65/NRGStromGedachtWidget",
