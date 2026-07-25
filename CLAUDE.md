@@ -93,13 +93,14 @@ einer Linie statt kreuz und quer. Details siehe SUITE.md.
 
 ## Zweige
 
-- `beta` — Entwicklung und schnelle Auslieferung an Dietmar und seinen Testerkreis. **Hier normal entwickeln und pushen.**
+- `ems-integration` — **aktueller Arbeitszweig, ab 25.07.2026 (Verschärfung Dietmar) AUSNAHMSLOS
+  für alle Pushes**, solange die EMS-Integrationsphase läuft — keine Ausnahme mehr für
+  vermeintlich sichere Fixes auf `beta`. Verbundweiter Zweig (identischer Name in allen
+  Modul-Repos), ursprünglich von `beta` abgezweigt. Gilt bis Dietmar explizit etwas anderes sagt.
+- `beta` — Entwicklung und schnelle Auslieferung an Dietmar und seinen Testerkreis. **Während der
+  Integrationsphase NICHT direkt bepushen** (siehe oben) — wird später von `ems-integration`
+  nachgezogen, sobald sich der Stand bewährt hat.
 - `main` — geprüfter, stabiler Stand (Standardzweig). Nur bewusst dorthin veröffentlichen.
-- `ems-integration` — verbundweiter Zweig (identischer Name in allen Modul-Repos, angelegt
-  25.07.2026, von `beta` abgezweigt) für riskante Fixes/Experimente aus der laufenden
-  EMS-Anbindung, bevor sie sich bei echten Beta-Testern bewähren. Nur nutzen, wenn eine konkrete
-  EMS-Integrationsaufgabe das verlangt — normale Arbeit bleibt auf `beta`. Nach Bewährung: Merge
-  nach `beta`.
 - `master` existiert nicht mehr (am 22.07.2026 repo-übergreifend entfernt).
 
 ## Prüfen vor dem Commit
