@@ -48,7 +48,7 @@ Die Werte entsprechen jeweils 1:1 der Quell-API; jede Quelle nutzt ihr eigenes V
 ## Installation
 
 1. In der IP-Symcon-Konsole die **Modulverwaltung** öffnen
-2. Repository hinzufügen: `https://github.com/DG65/StromGedachtWidget`
+2. Repository hinzufügen: `https://github.com/DG65/NRGStromGedachtWidget`
 3. Instanz **StromGedacht Widget** anlegen
 4. Optional zusätzlich eine Instanz **StromGedachtTile** anlegen, wenn eine native, grafisch einstellbare Kachel im WebFront gewünscht ist (siehe [Kachel](#kachel))
 
