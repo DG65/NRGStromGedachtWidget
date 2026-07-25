@@ -1,9 +1,9 @@
 {
     "id": "{D5A8C3A1-2222-4A55-8888-123456789003}",
-    "name": "NRGStromGedachtWidget",
+    "name": "StromGedacht Widget",
     "type": 3,
     "vendor": "TransnetBW GmbH",
-    "aliases": ["StromGedacht Widget", "NRGStromGedachtWidget", "Strom Gedacht Ampel"],
+    "aliases": ["NRGStromGedachtWidget", "Strom Gedacht Ampel"],
     "parentRequirements": [],
     "childRequirements": [],
     "implemented": [],
