@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.6.1 (2026-07-27)
+
+- Ampel-Texte an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen — Wiedererkennbarkeit für Nutzer, die die App bereits kennen. Recherchiert auf www.stromgedacht.de statt eigene Formulierungen fortzuschreiben.
+
 ## 1.6.0 (2026-07-27)
 
 - **Zwei-Regler-Kollisionscheck**: Automationen-Regeln zeigen jetzt an, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (über `EMS_GetControlledVariables()`, falls im System vorhanden) — Warnhinweis im Instanzformular, ⚠️-Symbol vor der Regel in der Kachel. Reine Information, keine Blockade; ohne EMS im System keine Änderung am Verhalten.

@@ -23,12 +23,14 @@ class StromGedachtTile extends IPSModule
 
     // Zustände laut StromGedacht API: -1 Supergrün, 1 Grün, 2 Gelb, 3 Orange, 4 Rot
     private const SG_LABELS = [-1 => 'Supergrün', 1 => 'Grün', 2 => 'Gelb', 3 => 'Orange', 4 => 'Rot'];
+    // Wortwahl an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen,
+    // siehe StromGedachtWidget/module.php.
     private const SG_TEXTS = [
-        -1 => 'Besonders viel erneuerbare Energie im Netz – Strom jetzt nutzen',
-        1  => 'Normalbetrieb – es ist nichts weiter zu tun',
+        -1 => 'Strom bevorzugt jetzt nutzen – besonders viel erneuerbare Energie im Netz',
+        1  => 'Strom wie gewohnt nutzen – Normalbetrieb',
         2  => 'Angespannte Netzsituation',
-        3  => 'Strom sparen bzw. Verbrauch verschieben empfohlen',
-        4  => 'Verbrauch reduzieren, um Netzengpass zu vermeiden'
+        3  => 'Verbrauch reduzieren – hilft, Kosten und CO₂ zu sparen',
+        4  => 'Verbrauch vermeiden – hilft, einen Strommangel zu verhindern'
     ];
     private const SG_LEVEL = [-1 => 'supergreen', 1 => 'green', 2 => 'yellow', 3 => 'orange', 4 => 'red'];
 

@@ -18,11 +18,13 @@ Jede Quelle lässt sich einzeln aktivieren. Liefert eine Quelle keine Daten (z. 
 
 | Wert | Zustand | Bedeutung |
 |------|-----------|-----------|
-| −1 | Supergrün | Besonders viel erneuerbare Energie im Netz — Strom jetzt nutzen |
-| 1 | Grün | Normalbetrieb — es ist nichts weiter zu tun |
+| −1 | Supergrün | Strom bevorzugt jetzt nutzen — besonders viel erneuerbare Energie im Netz |
+| 1 | Grün | Strom wie gewohnt nutzen — Normalbetrieb |
 | 2 | Gelb | Angespannte Netzsituation *(von der API nicht mehr verwendet)* |
-| 3 | Orange | Strom sparen bzw. Verbrauch verschieben empfohlen |
-| 4 | Rot | Verbrauch reduzieren, um Netzengpass zu vermeiden |
+| 3 | Orange | Verbrauch reduzieren — hilft, Kosten und CO₂ zu sparen |
+| 4 | Rot | Verbrauch vermeiden — hilft, einen Strommangel zu verhindern |
+
+*(Wortwahl an die offizielle StromGedacht-App/Website von TransnetBW angeglichen, Stand 2026-07-27.)*
 
 ### GrünstromIndex (Profil `NRG.Percent`)
 

@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.6.0';
+    private const MODULE_VERSION = '1.6.1';
     private const NEWS_ITEMS = [
+        'Texte der StromGedacht-Ampel an die offizielle TransnetBW-App/Website angeglichen (Wiedererkennbarkeit für Nutzer, die die App bereits kennen).',
         '🆕 Automationen warnen jetzt, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (Zwei-Regler-Kollision) — Hinweis im Formular und ⚠️-Symbol in der Kachel.',
         'Neue Funktionen SGW_GetState()/SGW_GetForecast() für andere Module des NRG-Stack (z. B. EMS) — Grundlage für automatische netzdienliche Steuerung.',
         'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
@@ -40,12 +41,15 @@ class StromGedachtWidget extends IPSModule
         4  => 'Rot'
     ];
 
+    // Wortwahl an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen
+    // (Stand 2026-07-27, www.stromgedacht.de) - Wiedererkennbarkeit für Nutzer, die die
+    // App bereits kennen.
     private const SG_TEXTS = [
-        -1 => 'Besonders viel erneuerbare Energie im Netz – Strom jetzt nutzen',
-        1  => 'Normalbetrieb – es ist nichts weiter zu tun',
+        -1 => 'Strom bevorzugt jetzt nutzen – besonders viel erneuerbare Energie im Netz',
+        1  => 'Strom wie gewohnt nutzen – Normalbetrieb',
         2  => 'Angespannte Netzsituation',
-        3  => 'Strom sparen bzw. Verbrauch verschieben empfohlen',
-        4  => 'Verbrauch reduzieren, um Netzengpass zu vermeiden'
+        3  => 'Verbrauch reduzieren – hilft, Kosten und CO₂ zu sparen',
+        4  => 'Verbrauch vermeiden – hilft, einen Strommangel zu verhindern'
     ];
 
     // Signale laut Energy-Charts API:
