@@ -22,6 +22,12 @@ function IPS_SetVariableProfileDigits($name, $digits) {}
 function IPS_SetVariableProfileText($name, $prefix, $suffix) {}
 function IPS_GetKernelRunlevel() { return KR_READY; }
 
+// Ident->Variablen-ID-Register je Instanz, für GetOwnValue() (IPS_GetObjectIDByIdent + GetValue)
+$GLOBALS['__objTree'] = [];
+$GLOBALS['__values'] = [];
+function IPS_GetObjectIDByIdent($ident, $instanceID) { return $GLOBALS['__objTree'][$instanceID][$ident] ?? false; }
+function GetValue($vid) { return $GLOBALS['__values'][$vid] ?? null; }
+
 class IPSModule
 {
     public $properties = [];
@@ -29,8 +35,15 @@ class IPSModule
     public $values = [];
     public $status = 0;
     public $timer = null;
+    public $InstanceID;
 
-    public function __construct(array $properties) { $this->properties = $properties; }
+    private static $nextVid = 1000;
+
+    public function __construct(array $properties)
+    {
+        $this->properties = $properties;
+        $this->InstanceID = self::$nextVid++;
+    }
     public function Create() {}
     public function ApplyChanges() {}
     public function RegisterPropertyBoolean($name, $default) { $this->properties[$name] ??= $default; }
@@ -48,8 +61,25 @@ class IPSModule
     public function RegisterTimer($ident, $interval, $script) {}
     public function SetTimerInterval($ident, $interval) { $this->timer = $interval; }
     public function RegisterMessage($sender, $message) {}
-    public function MaintainVariable($ident, $name, $type, $profile, $position, $keep) {}
-    public function SetValue($ident, $value) { $this->values[$ident] = $value; }
+    public function MaintainVariable($ident, $name, $type, $profile, $position, $keep)
+    {
+        // Nur die Ident->Vid-Zuordnung pflegen (für IPS_GetObjectIDByIdent/GetOwnValue);
+        // $this->values bleibt bewusst unberührt - das spiegelt weiterhin nur echte
+        // SetValue()-Aufrufe wider, damit die bestehenden "wurde wirklich befüllt"-Checks
+        // unten unverändert funktionieren.
+        if ($keep) {
+            $GLOBALS['__objTree'][$this->InstanceID][$ident] ??= self::$nextVid++;
+        } else {
+            unset($GLOBALS['__objTree'][$this->InstanceID][$ident]);
+        }
+    }
+    public function SetValue($ident, $value)
+    {
+        $this->values[$ident] = $value;
+        if (isset($GLOBALS['__objTree'][$this->InstanceID][$ident])) {
+            $GLOBALS['__values'][$GLOBALS['__objTree'][$this->InstanceID][$ident]] = $value;
+        }
+    }
     public function GetValue($ident) { return $this->values[$ident] ?? null; }
     public function SetStatus($status) { $this->status = $status; }
 
@@ -91,6 +121,7 @@ $failures = 0;
 foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbiddenIdents]) {
     $module = new StromGedachtWidget($props + ['UpdateInterval' => 300]);
     $module->Create();
+    $module->ApplyChanges();
     $module->status = IS_ACTIVE;
     $module->Update();
 
@@ -127,6 +158,118 @@ foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbidd
     if (count($problems) > 0) {
         $failures++;
     }
+}
+
+// [Properties, {Feld => muss null sein?}] - dauerhafte Regression für den NRG-Stack-Vertrag
+// SGW_GetState (contractVersion 1.0). Bisher nur mit Wegwerf-Skripten live geprüft; das war
+// eine "KI-Krücke" (Ziel 3 im gemeinsamen Zielbild, SUITE.md) - hier jetzt fest verankert.
+echo "\n";
+$stateCases = [
+    'Alle Quellen aktiv (70173)' => [
+        ['EnableStromGedacht' => true, 'EnableGSI' => true, 'EnableEnergyCharts' => true, 'ZipCode' => '70173'],
+        ['state' => false, 'gsi' => false, 'ecSignal' => false, 'ecShare' => false]
+    ],
+    'Nur Energy-Charts aktiv' => [
+        ['EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true, 'ZipCode' => ''],
+        ['state' => true, 'gsi' => true, 'ecSignal' => false, 'ecShare' => false]
+    ],
+];
+
+foreach ($stateCases as $label => [$props, $expectNull]) {
+    $module = new StromGedachtWidget($props + ['UpdateInterval' => 300]);
+    $module->Create();
+    $module->ApplyChanges();
+    $module->status = IS_ACTIVE;
+    $module->Update();
+
+    $state = $module->GetState();
+    $problems = [];
+    if (($state['contractVersion'] ?? null) !== '1.0') {
+        $problems[] = 'contractVersion fehlt/falsch: ' . var_export($state['contractVersion'] ?? null, true);
+    }
+    foreach ($expectNull as $field => $mustBeNull) {
+        if (!array_key_exists($field, $state)) {
+            $problems[] = "$field fehlt komplett im Ergebnis";
+            continue;
+        }
+        $isNull = $state[$field] === null;
+        if ($mustBeNull && !$isNull) {
+            $problems[] = "$field sollte null sein (Quelle deaktiviert), ist " . var_export($state[$field], true);
+        }
+        if (!$mustBeNull && $isNull) {
+            $problems[] = "$field ist null, sollte einen Wert haben (Quelle aktiv)";
+        }
+    }
+    if (!is_string($state['label'] ?? null) || $state['label'] === '') {
+        $problems[] = 'label fehlt oder leer';
+    }
+    if (!array_key_exists('updated', $state) || !is_int($state['updated'])) {
+        $problems[] = 'updated fehlt oder ist kein int';
+    }
+
+    printf(
+        "%s GetState: %s — %s\n",
+        count($problems) === 0 ? 'PASS' : 'FAIL',
+        $label,
+        $problems === [] ? json_encode($state) : implode('; ', $problems)
+    );
+    if (count($problems) > 0) {
+        $failures++;
+    }
+}
+
+// GetForecast: aktuell nur Quelle 'stromgedacht' liefert Einträge (Verbund-Vorgabe)
+$forecastModule = new StromGedachtWidget([
+    'EnableStromGedacht' => true, 'EnableGSI' => false, 'EnableEnergyCharts' => false,
+    'ZipCode' => '70173', 'UpdateInterval' => 300
+]);
+$forecastModule->Create();
+$forecastModule->ApplyChanges();
+$entries = $forecastModule->GetForecast(time(), time() + 24 * 3600);
+
+$problems = [];
+if (!is_array($entries)) {
+    $problems[] = 'kein Array zurückgegeben';
+} else {
+    foreach ($entries as $i => $entry) {
+        if (($entry['contractVersion'] ?? null) !== '1.0') {
+            $problems[] = "Eintrag $i: contractVersion falsch";
+        }
+        if (($entry['source'] ?? null) !== 'stromgedacht') {
+            $problems[] = "Eintrag $i: source falsch";
+        }
+        if (!is_int($entry['from'] ?? null) || !is_int($entry['to'] ?? null)) {
+            $problems[] = "Eintrag $i: from/to keine Unix-Timestamps";
+        } elseif ($entry['to'] <= $entry['from']) {
+            $problems[] = "Eintrag $i: to <= from";
+        }
+        if (!is_numeric($entry['value'] ?? null)) {
+            $problems[] = "Eintrag $i: value kein Zahlenwert";
+        }
+    }
+}
+printf(
+    "%s GetForecast: StromGedacht 24h-Vorschau — %d Eintrag/Einträge%s\n",
+    count($problems) === 0 ? 'PASS' : 'FAIL',
+    is_array($entries) ? count($entries) : 0,
+    $problems === [] ? '' : ' [' . implode('; ', $problems) . ']'
+);
+if (count($problems) > 0) {
+    $failures++;
+}
+
+// GetForecast ohne aktivierte StromGedacht-Quelle -> muss leer sein (kein Versehen)
+$forecastModuleDisabled = new StromGedachtWidget([
+    'EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true,
+    'ZipCode' => '', 'UpdateInterval' => 300
+]);
+$forecastModuleDisabled->Create();
+$forecastModuleDisabled->ApplyChanges();
+$emptyEntries = $forecastModuleDisabled->GetForecast(time(), time() + 24 * 3600);
+$ok = is_array($emptyEntries) && count($emptyEntries) === 0;
+printf("%s GetForecast: StromGedacht deaktiviert -> leeres Ergebnis\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
 }
 
 exit($failures === 0 ? 0 : 1);
