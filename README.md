@@ -94,6 +94,8 @@ Für eine native, grafisch einstellbare Darstellung im WebFront gibt es das eige
 
 Im Instanzformular von StromGedacht Widget lassen sich Regeln über die Ampel-/Signal-Werte anlegen, die beim Eintreten der Bedingung eine beliebige schaltbare Variable im System schalten — z. B. „Wenn StromGedacht-Ampel = Rot, dann Wallbox ausschalten". Als Wenn-Datenpunkt stehen die Werte der jeweils aktivierten Quellen zur Verfügung (StromGedacht-Ampel, GrünstromIndex, Energy-Charts-Signal, Energy-Charts EE-Anteil); mehrere Bedingungen werden mit UND verknüpft. Regeln feuern flankengesteuert — beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. Die Kachel StromGedachtTile kann dieselben Regeln anzeigen, anlegen, bearbeiten, löschen und ein-/ausschalten.
 
+Ist im System ein EMS-Modul des NRG-Stack installiert, prüft das Modul zusätzlich, ob die Zielvariable einer Regel bereits vom EMS gesteuert wird ("Ein Regler pro Stellgröße") — im Formular als Hinweistext, in der Kachel als ⚠️-Symbol vor der Regel. Reine Information, blockiert nichts; ohne EMS im System ändert sich nichts.
+
 ## Instanz-Status
 
 | Code | Bedeutung |

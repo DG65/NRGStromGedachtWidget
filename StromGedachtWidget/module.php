@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.5.0';
+    private const MODULE_VERSION = '1.6.0';
     private const NEWS_ITEMS = [
+        '🆕 Automationen warnen jetzt, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (Zwei-Regler-Kollision) — Hinweis im Formular und ⚠️-Symbol in der Kachel.',
         'Neue Funktionen SGW_GetState()/SGW_GetForecast() für andere Module des NRG-Stack (z. B. EMS) — Grundlage für automatische netzdienliche Steuerung.',
         'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
         'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
@@ -203,6 +204,46 @@ class StromGedachtWidget extends IPSModule
             unset($element);
         };
         $patch($form['elements']);
+
+        // Zwei-Regler-Warnhinweis: eine unserer Regel-Zielvariablen wird aktuell auch vom EMS
+        // gesteuert ("Ein Regler pro Stellgröße"-Verbundregel). Nur Information, keine
+        // Blockade - der Nutzer entscheidet selbst, ob die Regel noch sinnvoll ist.
+        $emsControlled = $this->getEmsControlledVariableIds();
+        $conflictNames = [];
+        $rules = json_decode((string) $this->ReadPropertyString('DataActions'), true);
+        if (is_array($rules)) {
+            foreach ($rules as $rule) {
+                if (is_array($rule) && $this->ruleHasEmsConflict($rule, $emsControlled)) {
+                    $tVid = (int) ($rule['Target'] ?? 0);
+                    $conflictNames[$tVid] = ($tVid > 0 && IPS_VariableExists($tVid)) ? IPS_GetName($tVid) : ('#' . $tVid);
+                }
+            }
+        }
+        if (count($conflictNames) > 0) {
+            $warningInserted = false;
+            $insertWarning = function (array &$elements) use (&$insertWarning, &$warningInserted, $conflictNames) {
+                foreach ($elements as &$element) {
+                    if ($warningInserted || !is_array($element) || !isset($element['items']) || !is_array($element['items'])) {
+                        continue;
+                    }
+                    foreach ($element['items'] as $idx => $child) {
+                        if (is_array($child) && ($child['name'] ?? '') === 'DataActions') {
+                            array_splice($element['items'], $idx + 1, 0, [[
+                                'type'    => 'Label',
+                                'caption' => '⚠️ Wird auch vom EMS gesteuert (Zwei-Regler-Kollision möglich): ' . implode(', ', $conflictNames)
+                            ]]);
+                            $warningInserted = true;
+                            break;
+                        }
+                    }
+                    if (!$warningInserted) {
+                        $insertWarning($element['items']);
+                    }
+                }
+                unset($element);
+            };
+            $insertWarning($form['elements']);
+        }
 
         // Einmaliger Feedback-Hinweis: erscheint, bis er per Button ausgeblendet wird
         if (!$this->ReadAttributeBoolean('ReviewHintDismissed')) {
@@ -936,6 +977,40 @@ class StromGedachtWidget extends IPSModule
     }
 
     /**
+     * Variablen-IDs, die aktuell aktiv vom EMS gesteuert werden (Zwei-Regler-Kollisionscheck,
+     * Verbund-Vorschlag 27.07.2026). Eigenständigkeitsregel: nur über function_exists() rufen,
+     * niemals blind - ein Aufruf einer undefinierten Funktion ist in PHP ein Fatal Error und
+     * ein vorangestelltes @ unterdrückt das NICHT. Ohne EMS im System: leeres Ergebnis, keine
+     * Warnung - reine Zusatzinformation, keine Abhängigkeit.
+     */
+    private function getEmsControlledVariableIds(): array
+    {
+        if (!function_exists('EMS_GetControlledVariables')) {
+            return [];
+        }
+        try {
+            $list = EMS_GetControlledVariables();
+        } catch (Throwable $e) {
+            $this->SendDebug('EMS-Abgleich', $e->getMessage(), 0);
+            return [];
+        }
+        $ids = [];
+        foreach ((is_array($list) ? $list : []) as $entry) {
+            if (is_array($entry) && isset($entry['variableID'])) {
+                $ids[(int) $entry['variableID']] = true;
+            }
+        }
+        return $ids;
+    }
+
+    /** Prüft, ob die Zielvariable einer Regel aktuell auch vom EMS gesteuert wird. */
+    private function ruleHasEmsConflict(array $rule, array $emsControlled): bool
+    {
+        $tVid = (int) ($rule['Target'] ?? 0);
+        return $tVid > 0 && isset($emsControlled[$tVid]);
+    }
+
+    /**
      * Daten für den Regel-Editor der Kachel: Datenpunkte (Quellen) und
      * schaltbare Zielvariablen mit Objektbaum-Pfad. JSON: {sources:[{v,c}], targets:[{v,c,p}]}
      */
@@ -1009,10 +1084,11 @@ class StromGedachtWidget extends IPSModule
         return json_encode($out);
     }
 
-    /** Regeln als JSON für die Kachel: [{i, text, active, rule}] */
+    /** Regeln als JSON für die Kachel: [{i, text, active, emsConflict, rule}] */
     public function GetDataActions(): string
     {
         $rules = json_decode((string) $this->ReadPropertyString('DataActions'), true);
+        $emsControlled = $this->getEmsControlledVariableIds();
         $out = [];
         if (is_array($rules)) {
             foreach ($rules as $i => $rule) {
@@ -1020,10 +1096,11 @@ class StromGedachtWidget extends IPSModule
                     continue;
                 }
                 $out[] = [
-                    'i'      => $i,
-                    'text'   => $this->describeDataAction($rule),
-                    'active' => (bool) ($rule['Active'] ?? true),
-                    'rule'   => [
+                    'i'           => $i,
+                    'text'        => $this->describeDataAction($rule),
+                    'active'      => (bool) ($rule['Active'] ?? true),
+                    'emsConflict' => $this->ruleHasEmsConflict($rule, $emsControlled),
+                    'rule'        => [
                         'Conditions' => $this->normalizeRuleConditions($rule),
                         'Target'     => (int) ($rule['Target'] ?? 0),
                         'Action'     => (string) ($rule['Action'] ?? 'on'),

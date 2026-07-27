@@ -22,6 +22,19 @@ function IPS_SetVariableProfileDigits($name, $digits) {}
 function IPS_SetVariableProfileText($name, $prefix, $suffix) {}
 function IPS_GetKernelRunlevel() { return KR_READY; }
 
+// Fremde Zielvariablen (für DataActions-Regeln), für die GetDataActions()/
+// GetConfigurationForm() Namen auflösen müssen - Register je Vid.
+const VARIABLETYPE_BOOLEAN = 0;
+$GLOBALS['__testVariables'] = [
+    9001 => ['name' => 'Wallbox', 'path' => 'Test.Wallbox'],
+    9002 => ['name' => 'Pool-Pumpe', 'path' => 'Test.Pool-Pumpe'],
+];
+function IPS_VariableExists($vid) { return isset($GLOBALS['__testVariables'][$vid]); }
+function IPS_GetName($vid) { return $GLOBALS['__testVariables'][$vid]['name'] ?? ('#' . $vid); }
+function IPS_GetLocation($vid) { return $GLOBALS['__testVariables'][$vid]['path'] ?? ('#' . $vid); }
+function IPS_GetVariable($vid) { return ['VariableType' => VARIABLETYPE_BOOLEAN, 'VariableAction' => 1, 'VariableCustomAction' => 0]; }
+function IPS_GetVariableList() { return array_keys($GLOBALS['__testVariables']); }
+
 // Ident->Variablen-ID-Register je Instanz, für GetOwnValue() (IPS_GetObjectIDByIdent + GetValue)
 $GLOBALS['__objTree'] = [];
 $GLOBALS['__values'] = [];
@@ -268,6 +281,63 @@ $forecastModuleDisabled->ApplyChanges();
 $emptyEntries = $forecastModuleDisabled->GetForecast(time(), time() + 24 * 3600);
 $ok = is_array($emptyEntries) && count($emptyEntries) === 0;
 printf("%s GetForecast: StromGedacht deaktiviert -> leeres Ergebnis\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// Zwei-Regler-Kollisionscheck (EMS_GetControlledVariables, Verbund-Vorschlag 27.07.2026):
+// erst ohne EMS im System prüfen (Funktion existiert noch nicht - siehe unten), danach mit.
+function makeModuleWithRule(int $target): StromGedachtWidget
+{
+    $m = new StromGedachtWidget([
+        'EnableStromGedacht' => true, 'EnableGSI' => false, 'EnableEnergyCharts' => false,
+        'ZipCode' => '70173', 'UpdateInterval' => 300,
+        'DataActions' => json_encode([[
+            'Active' => true,
+            'Conditions' => [['Source' => 'State', 'Op' => 'eq', 'Compare' => '4']],
+            'Source' => 'State', 'Op' => 'eq', 'Compare' => '4',
+            'Target' => $target, 'Action' => 'off', 'Value' => ''
+        ]])
+    ]);
+    $m->Create();
+    return $m;
+}
+
+$mNoEms = makeModuleWithRule(9001);
+$actionsNoEms = json_decode($mNoEms->GetDataActions(), true);
+$formNoEms = json_encode(json_decode($mNoEms->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$ok = ($actionsNoEms[0]['emsConflict'] ?? true) === false && strpos($formNoEms, 'Kollision möglich)') === false;
+printf("%s EMS-Konfliktcheck: kein EMS im System -> kein Konflikt, keine Warnung\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// Ab hier existiert EMS_GetControlledVariables() (bewusst in einem immer-wahren if-Block
+// deklariert, nicht auf Top-Level - Top-Level-Funktionen werden von PHP unabhängig von ihrer
+// Position im Skript schon beim Parsen deklariert ("gehoisted") und hätten damit auch den
+// Test oben verfälscht).
+if (true) {
+    function EMS_GetControlledVariables()
+    {
+        return [['variableID' => 9001, 'instanceID' => 1, 'ident' => 'ctl_x', 'purpose' => 'test']];
+    }
+}
+
+$mConflict = makeModuleWithRule(9001);
+$actionsConflict = json_decode($mConflict->GetDataActions(), true);
+$formConflict = json_encode(json_decode($mConflict->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$ok = ($actionsConflict[0]['emsConflict'] ?? false) === true
+    && strpos($formConflict, 'Kollision möglich)') !== false
+    && strpos($formConflict, 'Wallbox') !== false;
+printf("%s EMS-Konfliktcheck: EMS steuert dieselbe Zielvariable -> Konflikt + Warnung mit Name\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+$mNoConflict = makeModuleWithRule(9002);
+$actionsNoConflict = json_decode($mNoConflict->GetDataActions(), true);
+$ok = ($actionsNoConflict[0]['emsConflict'] ?? true) === false;
+printf("%s EMS-Konfliktcheck: EMS steuert andere Variable -> kein Fehlalarm\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
 }

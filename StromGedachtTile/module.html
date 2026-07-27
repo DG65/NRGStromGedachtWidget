@@ -216,8 +216,8 @@
                     row.className = 'sgt-rule' + (r.active ? '' : ' off');
                     var t = document.createElement('span');
                     t.className = 't';
-                    t.textContent = r.text;
-                    t.title = r.text;
+                    t.textContent = (r.emsConflict ? '⚠️ ' : '') + r.text;
+                    t.title = r.emsConflict ? 'Achtung: Zielvariable wird aktuell auch vom EMS gesteuert (Zwei-Regler-Kollision möglich) — ' + r.text : r.text;
                     var ed = document.createElement('button');
                     ed.className = 'sgt-ico';
                     ed.textContent = '✎';

@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.6.0 (2026-07-27)
+
+- **Zwei-Regler-Kollisionscheck**: Automationen-Regeln zeigen jetzt an, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (über `EMS_GetControlledVariables()`, falls im System vorhanden) — Warnhinweis im Instanzformular, ⚠️-Symbol vor der Regel in der Kachel. Reine Information, keine Blockade; ohne EMS im System keine Änderung am Verhalten.
+- Dauerhafte Regressionstests für `SGW_GetState()`/`SGW_GetForecast()` und den Kollisionscheck in `tests/smoke.php` verankert (vorher nur mit Wegwerf-Skripten geprüft)
+
 ## 1.5.0 (2026-07-24)
 
 - **`SGW_GetState()`**: stabiler NRG-Stack-Vertrag (contractVersion 1.0) — aktueller Zustand aller aktivierten Quellen als Array, für andere Module des Verbunds (z. B. EMS)
