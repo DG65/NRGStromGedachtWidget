@@ -101,6 +101,25 @@ einer Linie statt kreuz und quer. Details siehe SUITE.md.
   Integrationsphase NICHT direkt bepushen** (siehe oben) — wird später von `ems-integration`
   nachgezogen, sobald sich der Stand bewährt hat.
 - `main` — geprüfter, stabiler Stand (Standardzweig). Nur bewusst dorthin veröffentlichen.
+
+### Vor jedem beta→main-Wechsel: Neuinstallations-Simulation
+
+Verbund-Checkliste (SUITE.md, Commits 875fe1d + 630e15a, Grundregel "keine eigene Anlage als
+Norm annehmen" — Dietmars PLZ 70173 liegt zufällig im StromGedacht-Gebiet, das hätte den
+Regions-Blindfleck von v1.6.2 sonst nie sichtbar gemacht). Vor dem Merge abarbeiten, nicht erst
+danach:
+
+1. Formular komplett durchgehen, als wäre man Nutzer ohne StromGedacht-Abdeckung/außerhalb
+   Baden-Württembergs, ohne Dietmars konkrete PLZ/Konfiguration im Kopf.
+2. Erwähnte Fabrikate/Dienste nur als "z. B." kennzeichnen, nie als einzige Option suggerieren
+   (bei uns unkritisch — reines API-Polling, keine Hardware-Bindung, siehe v1.6.2-Prüfung).
+3. Bei jedem Feld/jeder Liste klarstellen, ob der Wert automatisch kommt (Discovery/Vertrag)
+   oder manuell verknüpft werden muss (Vorbild: `SourceInstance`-Caption "leer = automatisch
+   erkennen").
+4. Default-Werte dürfen nie eine eigene Sonderkonfiguration widerspiegeln.
+5. Volltextsuche nach eigenen IDs/PLZ/Kampagnennamen im Code (`grep -rn "70173"` u. Ä.) — nichts
+   davon darf als Default oder Beispielwert im Repo landen.
+6. Wo möglich: zweite Sitzung gegenprüfen lassen.
 - `master` existiert nicht mehr (am 22.07.2026 repo-übergreifend entfernt).
 
 ## Prüfen vor dem Commit
