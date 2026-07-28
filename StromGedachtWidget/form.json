@@ -12,7 +12,7 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz fragt bis zu drei unabhängige Datenquellen ab und stellt für jede aktivierte Quelle eine eigene Ampel-Variable bereit: StromGedacht (Netz-Signal, benötigt PLZ), GrünstromIndex (Öko-Signal, benötigt PLZ) und Energy-Charts (Öko-Signal, bundesweit, keine PLZ nötig). Alle aktivierten Quellen laufen parallel; solange mindestens eine liefert, bleibt die Instanz aktiv."
+                    "caption": "Diese Instanz fragt bis zu drei unabhängige Datenquellen ab und stellt für jede aktivierte Quelle eine eigene Ampel-Variable bereit: StromGedacht (Netz-Signal, benötigt PLZ, deckt NUR Baden-Württemberg sowie einzelne Pilotgebiete ab), GrünstromIndex (Öko-Signal, benötigt PLZ, bundesweit) und Energy-Charts (Öko-Signal, bundesweit, keine PLZ nötig). Alle aktivierten Quellen laufen parallel; solange mindestens eine liefert, bleibt die Instanz aktiv. Außerhalb des StromGedacht-Gebiets einfach nur GrünstromIndex und/oder Energy-Charts aktivieren."
                 },
                 {
                     "type": "Label",
@@ -43,7 +43,7 @@
         {
             "type": "CheckBox",
             "name": "EnableStromGedacht",
-            "caption": "StromGedacht (TransnetBW, Netz-Signal, PLZ erforderlich)"
+            "caption": "StromGedacht (TransnetBW, Netz-Signal, PLZ erforderlich, NUR Baden-Württemberg + Pilotgebiete)"
         },
         {
             "type": "CheckBox",
@@ -73,7 +73,7 @@
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Regeln über die Ampel-/Signal-Werte dieser Instanz: sobald die Bedingung erfüllt wird, schaltet das Modul die Zielvariable. Flankengesteuert – eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. Die Kachel 'StromGedachtTile' kann Regeln anzeigen, verwalten und ein-/ausschalten."
+                    "caption": "Regeln über die Ampel-/Signal-Werte dieser Instanz: sobald die Bedingung erfüllt wird, schaltet das Modul die Zielvariable. Flankengesteuert – eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. In 'Wenn Datenpunkt' erscheinen automatisch nur die Werte der oben aktivierten Quellen – eine deaktivierte Quelle (z. B. GrünstromIndex ohne Häkchen) taucht dort nicht als Auswahl auf. Die Kachel 'StromGedachtTile' kann Regeln anzeigen, verwalten und ein-/ausschalten."
                 },
                 {
                     "type": "List",

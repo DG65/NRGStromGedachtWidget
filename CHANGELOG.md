@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.6.2 (2026-07-27)
+
+- Usability-Nachschau auf Dietmars Hinweis (Vorbild: EMS-Fund zu impliziten Hardware-Annahmen): Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (stand vorher nur im README, nicht im Formular selbst) und dass die Automationen-Quellenliste "Wenn Datenpunkt" nur aktivierte Quellen zeigt
+
 ## 1.6.1 (2026-07-27)
 
 - Ampel-Texte an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen — Wiedererkennbarkeit für Nutzer, die die App bereits kennen. Recherchiert auf www.stromgedacht.de statt eigene Formulierungen fortzuschreiben.

@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.6.1';
+    private const MODULE_VERSION = '1.6.2';
     private const NEWS_ITEMS = [
+        'Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (GrünstromIndex/Energy-Charts bundesweit) und dass "Wenn Datenpunkt" nur aktivierte Quellen zeigt.',
         'Texte der StromGedacht-Ampel an die offizielle TransnetBW-App/Website angeglichen (Wiedererkennbarkeit für Nutzer, die die App bereits kennen).',
         '🆕 Automationen warnen jetzt, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (Zwei-Regler-Kollision) — Hinweis im Formular und ⚠️-Symbol in der Kachel.',
         'Neue Funktionen SGW_GetState()/SGW_GetForecast() für andere Module des NRG-Stack (z. B. EMS) — Grundlage für automatische netzdienliche Steuerung.',
