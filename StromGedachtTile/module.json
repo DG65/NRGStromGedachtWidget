@@ -4,9 +4,7 @@
     "type": 3,
     "vendor": "TransnetBW GmbH",
     "aliases": [
-        "NRG-Stack StromGedacht Kachel",
-        "NRGStromGedachtTile",
-        "StromGedacht Ampel-Kachel"
+        "NRG-Stack StromGedacht Kachel"
     ],
     "url": "https://github.com/DG65/NRGStromGedachtWidget",
     "parentRequirements": [],

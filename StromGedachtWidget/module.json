@@ -3,7 +3,7 @@
     "name": "StromGedacht Widget",
     "type": 3,
     "vendor": "TransnetBW GmbH",
-    "aliases": ["NRG-Stack StromGedacht Widget", "NRGStromGedachtWidget", "Strom Gedacht Ampel"],
+    "aliases": ["NRG-Stack StromGedacht Widget"],
     "parentRequirements": [],
     "childRequirements": [],
     "implemented": [],
