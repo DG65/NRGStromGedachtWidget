@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.6.2';
+    private const MODULE_VERSION = '1.7.0';
     private const NEWS_ITEMS = [
+        '🆕 SGW_GetForecast() liefert jetzt auch Vorschau-Einträge für GrünstromIndex (source: "gsi", stündliches Raster) und Energy-Charts (source: "energycharts", 15-Minuten-Raster, begrenztes Zukunftsfenster) — nicht mehr nur StromGedacht.',
         'Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (GrünstromIndex/Energy-Charts bundesweit) und dass "Wenn Datenpunkt" nur aktivierte Quellen zeigt.',
         'Texte der StromGedacht-Ampel an die offizielle TransnetBW-App/Website angeglichen (Wiedererkennbarkeit für Nutzer, die die App bereits kennen).',
         '🆕 Automationen warnen jetzt, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (Zwei-Regler-Kollision) — Hinweis im Formular und ⚠️-Symbol in der Kachel.',
@@ -391,13 +392,35 @@ class StromGedachtWidget extends IPSModule
      * Einträge. API-Horizont: maximal 48 Stunden ab jetzt; die Zeiträume
      * sind unregelmäßige Zustands-Segmente, kein festes Raster.
      */
+    /**
+     * Vorschau im Zeitraum [$Von, $Bis] über alle aktivierten Quellen (source:
+     * 'stromgedacht'/'gsi'/'energycharts'). Achtung: Horizont und Zeitraster
+     * unterscheiden sich je Quelle (API-Eigenheit, nicht angleichbar ohne
+     * Rohdaten zu verfälschen) - siehe die einzelnen fetch*Forecast()-Methoden.
+     */
     public function GetForecast(int $Von, int $Bis): array
     {
-        if (!$this->ReadPropertyBoolean('EnableStromGedacht')) {
+        if ($Bis <= $Von) {
             return [];
         }
+        $entries = [];
+        if ($this->ReadPropertyBoolean('EnableStromGedacht')) {
+            $entries = array_merge($entries, $this->fetchStromGedachtForecast($Von, $Bis));
+        }
+        if ($this->ReadPropertyBoolean('EnableGSI')) {
+            $entries = array_merge($entries, $this->fetchGsiForecast($Von, $Bis));
+        }
+        if ($this->ReadPropertyBoolean('EnableEnergyCharts')) {
+            $entries = array_merge($entries, $this->fetchEnergyChartsForecast($Von, $Bis));
+        }
+        return $entries;
+    }
+
+    /** Horizont: API-Maximum 48h ab jetzt. Unregelmäßige Zustands-Segmente, kein festes Raster. */
+    private function fetchStromGedachtForecast(int $Von, int $Bis): array
+    {
         $zip = trim($this->ReadPropertyString('ZipCode'));
-        if ($zip === '' || $Bis <= $Von) {
+        if ($zip === '') {
             return [];
         }
 
@@ -407,7 +430,7 @@ class StromGedachtWidget extends IPSModule
         [$code, $body] = $this->HttpGet('https://api.stromgedacht.de/v1/statesRelative?zip=' . urlencode($zip) . '&hoursInFuture=' . $hoursInFuture);
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['states']) || !is_array($data['states'])) {
-            $this->SendDebug('GetForecast', 'API nicht erreichbar oder ungültige Antwort', 0);
+            $this->SendDebug('GetForecast', 'StromGedacht: API nicht erreichbar oder ungültige Antwort', 0);
             return [];
         }
 
@@ -421,7 +444,6 @@ class StromGedachtWidget extends IPSModule
             if ($from === false || $to === false) {
                 continue;
             }
-            // Auf den angefragten Zeitraum zuschneiden
             $from = max($from, $Von);
             $to = min($to, $Bis);
             if ($to <= $from) {
@@ -433,6 +455,92 @@ class StromGedachtWidget extends IPSModule
                 'from'   => $from,
                 'to'     => $to,
                 'value'  => (float) $period['state']
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Horizont: mehrere Tage (API-abhängig, kein fester Wert). Raster: STÜNDLICH
+     * (Corrently liefert echte 1h-Zeitfenster, kein 15-Minuten-Raster - wird hier
+     * nicht künstlich verfeinert, um keine falsche Genauigkeit vorzutäuschen).
+     */
+    private function fetchGsiForecast(int $Von, int $Bis): array
+    {
+        $zip = trim($this->ReadPropertyString('ZipCode'));
+        if ($zip === '') {
+            return [];
+        }
+
+        [$code, $body] = $this->HttpGet('https://api.corrently.io/v2.0/gsi/prediction?zip=' . urlencode($zip));
+        $data = $this->DecodeJson($code, $body);
+        if ($data === null || !isset($data['forecast']) || !is_array($data['forecast'])) {
+            $this->SendDebug('GetForecast', 'GSI: API nicht erreichbar oder ungültige Antwort', 0);
+            return [];
+        }
+
+        $entries = [];
+        foreach ($data['forecast'] as $period) {
+            if (!is_array($period) || !isset($period['timeframe']['start'], $period['timeframe']['end'], $period['gsi'])) {
+                continue;
+            }
+            $from = (int) ((int) $period['timeframe']['start'] / 1000);
+            $to = (int) ((int) $period['timeframe']['end'] / 1000);
+            $from = max($from, $Von);
+            $to = min($to, $Bis);
+            if ($to <= $from) {
+                continue;
+            }
+            $entries[] = [
+                'contractVersion' => '1.0',
+                'source' => 'gsi',
+                'from'   => $from,
+                'to'     => $to,
+                'value'  => (float) $period['gsi']
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Horizont: fest ans "Jetzt" gekoppeltes API-Fenster, in der Praxis nur wenige
+     * Stunden in die Zukunft (kein garantierter 24h-Horizont). Raster: echte
+     * 15-Minuten-Schritte. Wert = ecSignal (-1/0/1/2); der zugehörige EE-Anteil
+     * (ecShare) ist in diesem Vertrag NICHT enthalten (passt nicht ins bestehende
+     * source-Schema stromgedacht/gsi/energycharts - bei Bedarf Rückmeldung an uns).
+     */
+    private function fetchEnergyChartsForecast(int $Von, int $Bis): array
+    {
+        [$code, $body] = $this->HttpGet('https://api.energy-charts.info/signal?country=de');
+        $data = $this->DecodeJson($code, $body);
+        if ($data === null || !isset($data['unix_seconds'], $data['signal']) || !is_array($data['unix_seconds']) || !is_array($data['signal'])) {
+            $this->SendDebug('GetForecast', 'Energy-Charts: API nicht erreichbar oder ungültige Antwort', 0);
+            return [];
+        }
+
+        $times = $data['unix_seconds'];
+        $signals = $data['signal'];
+        $count = count($times);
+        $entries = [];
+        for ($i = 0; $i < $count; $i++) {
+            if (!isset($signals[$i])) {
+                continue;
+            }
+            $from = (int) $times[$i];
+            $to = ($i + 1 < $count) ? (int) $times[$i + 1] : $from + 900;
+            $from = max($from, $Von);
+            $to = min($to, $Bis);
+            if ($to <= $from) {
+                continue;
+            }
+            $entries[] = [
+                'contractVersion' => '1.0',
+                'source' => 'energycharts',
+                'from'   => $from,
+                'to'     => $to,
+                'value'  => (float) $signals[$i]
             ];
         }
 

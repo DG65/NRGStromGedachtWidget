@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.0 (2026-07-27)
+
+- **`SGW_GetForecast()` erweitert**: liefert jetzt auch Vorschau-Einträge für `source: 'gsi'` (GrünstromIndex, stündliches Raster über mehrere Tage) und `source: 'energycharts'` (ecSignal, 15-Minuten-Raster, aber nur ein knappes Zukunftsfenster) — vorher nur `'stromgedacht'`. Auf konkrete Anfrage des EMS-Moduls für eine "grünste Ladezeit"-Funktion gebaut, Roh-APIs vorher live gegen die Annahmen (24h/15-Minuten für beide Quellen) geprüft: GSI ist tatsächlich stündlich, Energy-Charts deckt nur ~12h Zukunft ab, nicht 24h. Kein künstliches Verfeinern/Auffüllen, um keine falsche Genauigkeit vorzutäuschen. `ecShare` ist bewusst nicht enthalten (passt nicht ins bestehende 3-Werte-`source`-Schema).
+- Dauerhaft getestet (4 neue Fälle in `tests/smoke.php`: GSI-Vorschau, Energy-Charts-Vorschau, alle drei Quellen gemischt, nur-eine-Quelle-liefert-nur-ihre-eigenen-Einträge).
+
 ## 1.6.2 (2026-07-27)
 
 - Usability-Nachschau auf Dietmars Hinweis (Vorbild: EMS-Fund zu impliziten Hardware-Annahmen): Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (stand vorher nur im README, nicht im Formular selbst) und dass die Automationen-Quellenliste "Wenn Datenpunkt" nur aktivierte Quellen zeigt

@@ -128,13 +128,18 @@ SGW_GetState(int $InstanzID): array
 //     'gsi' => float|null, 'ecSignal' => int|null, 'ecShare' => float|null, 'updated' => int]
 // Felder sind null, wenn die jeweilige Quelle in dieser Instanz nicht aktiviert ist.
 
-// Vorschau im Zeitraum [$Von, $Bis] (Unix-Timestamps)
+// Vorschau im Zeitraum [$Von, $Bis] (Unix-Timestamps), je aktivierter Quelle eine Liste
 SGW_GetForecast(int $InstanzID, int $Von, int $Bis): array
-// -> Liste von ['contractVersion' => '1.0', 'source' => 'stromgedacht', 'from' => int, 'to' => int, 'value' => float]
-// Aktuell nur die Quelle 'stromgedacht' implementiert (StromGedacht-API, Horizont max. 48 h ab
-// jetzt, unregelmäßige Zustands-Segmente statt festem Raster); 'gsi'/'energycharts' liefern noch
-// keine Einträge. Leeres Ergebnis, wenn StromGedacht nicht aktiviert ist, keine PLZ hinterlegt
-// ist, oder die API nicht erreichbar war.
+// -> Liste von ['contractVersion' => '1.0', 'source' => 'stromgedacht'|'gsi'|'energycharts', 'from' => int, 'to' => int, 'value' => float]
+// Horizont/Raster unterscheiden sich je Quelle (API-Eigenheit, nicht vereinheitlicht, um keine
+// falsche Genauigkeit vorzutäuschen):
+//   - 'stromgedacht': max. 48 h ab jetzt, unregelmäßige Zustands-Segmente statt festem Raster.
+//   - 'gsi' (GrünstromIndex): mehrere Tage, STÜNDLICHES Raster (kein 15-Minuten-Takt).
+//   - 'energycharts': 15-Minuten-Raster, aber nur ein knappes, an "jetzt" gekoppeltes
+//     Zukunftsfenster (kein garantierter 24h-Horizont). Wert ist ecSignal (-1/0/1/2);
+//     der EE-Anteil (ecShare) ist hier nicht enthalten.
+// Je Quelle leere Liste, wenn sie nicht aktiviert ist, PLZ fehlt (bei stromgedacht/gsi nötig),
+// oder die jeweilige API nicht erreichbar war — die anderen Quellen liefern unabhängig davon.
 ```
 
 StromGedacht ist dabei eine **Empfehlung, keine Pflicht** — ein konsumierendes Modul (z. B. das EMS) darf sie überstimmen, wenn gesetzliche Vorgaben (§14a), Direktvermarktung oder Nutzerkomfort dagegenstehen.

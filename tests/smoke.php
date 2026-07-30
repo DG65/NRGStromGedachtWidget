@@ -271,16 +271,100 @@ if (count($problems) > 0) {
     $failures++;
 }
 
-// GetForecast ohne aktivierte StromGedacht-Quelle -> muss leer sein (kein Versehen)
+// GetForecast: nur Energy-Charts aktiv -> keine 'stromgedacht'/'gsi'-Einträge, aber
+// Energy-Charts liefert trotzdem (Quellen sind unabhängig voneinander, kein Alles-oder-Nichts)
 $forecastModuleDisabled = new StromGedachtWidget([
     'EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true,
     'ZipCode' => '', 'UpdateInterval' => 300
 ]);
 $forecastModuleDisabled->Create();
 $forecastModuleDisabled->ApplyChanges();
-$emptyEntries = $forecastModuleDisabled->GetForecast(time(), time() + 24 * 3600);
-$ok = is_array($emptyEntries) && count($emptyEntries) === 0;
-printf("%s GetForecast: StromGedacht deaktiviert -> leeres Ergebnis\n", $ok ? 'PASS' : 'FAIL');
+$mixedEntries = $forecastModuleDisabled->GetForecast(time(), time() + 24 * 3600);
+$sourcesDisabled = is_array($mixedEntries) ? array_unique(array_column($mixedEntries, 'source')) : [];
+$ok = is_array($mixedEntries) && count($mixedEntries) > 0
+    && !in_array('stromgedacht', $sourcesDisabled, true) && !in_array('gsi', $sourcesDisabled, true)
+    && in_array('energycharts', $sourcesDisabled, true);
+printf("%s GetForecast: nur Energy-Charts aktiv -> nur diese Quelle im Ergebnis (%s)\n", $ok ? 'PASS' : 'FAIL', implode(', ', $sourcesDisabled));
+if (!$ok) {
+    $failures++;
+}
+
+/** Prüft eine GetForecast()-Ergebnisliste gegen die erwartete source (contractVersion/from<to/value). */
+function checkForecastEntries(array $entries, string $expectedSource): array
+{
+    $problems = [];
+    foreach ($entries as $i => $entry) {
+        if (($entry['contractVersion'] ?? null) !== '1.0') {
+            $problems[] = "Eintrag $i: contractVersion falsch";
+        }
+        if (($entry['source'] ?? null) !== $expectedSource) {
+            $problems[] = "Eintrag $i: source falsch (" . ($entry['source'] ?? '?') . ")";
+        }
+        if (!is_int($entry['from'] ?? null) || !is_int($entry['to'] ?? null)) {
+            $problems[] = "Eintrag $i: from/to keine Unix-Timestamps";
+        } elseif ($entry['to'] <= $entry['from']) {
+            $problems[] = "Eintrag $i: to <= from";
+        }
+        if (!is_numeric($entry['value'] ?? null)) {
+            $problems[] = "Eintrag $i: value kein Zahlenwert";
+        }
+    }
+    return $problems;
+}
+
+// GetForecast: GSI (Corrently, stündliches Raster laut Verbund-Anfrage 27.07.2026 verifiziert)
+$gsiForecastModule = new StromGedachtWidget([
+    'EnableStromGedacht' => false, 'EnableGSI' => true, 'EnableEnergyCharts' => false,
+    'ZipCode' => '70173', 'UpdateInterval' => 300
+]);
+$gsiForecastModule->Create();
+$gsiForecastModule->ApplyChanges();
+$gsiEntries = $gsiForecastModule->GetForecast(time(), time() + 24 * 3600);
+$problems = is_array($gsiEntries) ? checkForecastEntries($gsiEntries, 'gsi') : ['kein Array zurückgegeben'];
+printf(
+    "%s GetForecast: GrünstromIndex 24h-Vorschau — %d Eintrag/Einträge%s\n",
+    count($problems) === 0 ? 'PASS' : 'FAIL',
+    is_array($gsiEntries) ? count($gsiEntries) : 0,
+    $problems === [] ? '' : ' [' . implode('; ', $problems) . ']'
+);
+if (count($problems) > 0) {
+    $failures++;
+}
+
+// GetForecast: Energy-Charts (15-Minuten-Raster, aber nur begrenztes Zukunftsfenster)
+$ecForecastModule = new StromGedachtWidget([
+    'EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true,
+    'ZipCode' => '', 'UpdateInterval' => 300
+]);
+$ecForecastModule->Create();
+$ecForecastModule->ApplyChanges();
+$ecEntries = $ecForecastModule->GetForecast(time(), time() + 24 * 3600);
+$problems = is_array($ecEntries) ? checkForecastEntries($ecEntries, 'energycharts') : ['kein Array zurückgegeben'];
+printf(
+    "%s GetForecast: Energy-Charts 24h-Vorschau — %d Eintrag/Einträge%s\n",
+    count($problems) === 0 ? 'PASS' : 'FAIL',
+    is_array($ecEntries) ? count($ecEntries) : 0,
+    $problems === [] ? '' : ' [' . implode('; ', $problems) . ']'
+);
+if (count($problems) > 0) {
+    $failures++;
+}
+
+// GetForecast: alle drei Quellen aktiv -> gemischte source-Werte im selben Ergebnis
+$allForecastModule = new StromGedachtWidget([
+    'EnableStromGedacht' => true, 'EnableGSI' => true, 'EnableEnergyCharts' => true,
+    'ZipCode' => '70173', 'UpdateInterval' => 300
+]);
+$allForecastModule->Create();
+$allForecastModule->ApplyChanges();
+$allEntries = $allForecastModule->GetForecast(time(), time() + 24 * 3600);
+$sources = is_array($allEntries) ? array_unique(array_column($allEntries, 'source')) : [];
+$ok = is_array($allEntries) && count(array_intersect(['stromgedacht', 'gsi', 'energycharts'], $sources)) === 3;
+printf(
+    "%s GetForecast: alle drei Quellen aktiv -> Quellen im Ergebnis: %s\n",
+    $ok ? 'PASS' : 'FAIL',
+    implode(', ', $sources)
+);
 if (!$ok) {
     $failures++;
 }
