@@ -122,6 +122,18 @@ danach:
 6. Wo möglich: zweite Sitzung gegenprüfen lassen.
 - `master` existiert nicht mehr (am 22.07.2026 repo-übergreifend entfernt).
 
+## README-Badges (Verbund-Konvention, 18.08.2026)
+
+Zeile direkt unter der H1-Überschrift (Vorbild EMS-README, `check-style.yml` als CI-Vorlage):
+Symcon|PHPModul, Modul Version, Symcon Version (aus `library.json` → `compatibility.version`),
+License (eigener Text „PolyForm_Noncommercial_1.0.0", kein Preset), Check-Style-CI (echter
+GitHub-Actions-Workflow `.github/workflows/check-style.yml`, kein gefälschtes Badge), PayPal.
+
+**„Modul Version"-Badge muss bei JEDEM Versions-Bump von Hand mitgezogen werden** — synct nicht
+automatisch mit `library.json`/`module.json`. Gehört ab jetzt zur ohnehin bestehenden
+Pflegepflicht (siehe „Formular-Konvention" oben: NEWS_ITEMS/MODULE_VERSION bei jedem Fix prüfen —
+diese Badge-Zeile gehört mit auf dieselbe Prüfliste).
+
 ## Prüfen vor dem Commit
 
 ```bash
