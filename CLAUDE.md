@@ -42,7 +42,7 @@ deutschem Anzeigetext füllen.
 
 ## Vertragsversionierung (Verbund-Konvention, 23.07.2026)
 
-Manifest: https://github.com/DG65/EMS/blob/main/SUITE.md
+Manifest: https://github.com/DG65/NRGEMS/blob/main/SUITE.md
 
 - **Modul-Version** bleibt unser SemVer (Datei `library.json`/`module.json`).
 - **Vertragsversion:** Sobald `SGW_GetState()`/`SGW_GetForecast()` gebaut werden, liefern sie von

@@ -25,7 +25,7 @@ Alle nennenswerten Änderungen an StromGedachtWidget.
 - **`SGW_GetState()`**: stabiler NRG-Stack-Vertrag (contractVersion 1.0) — aktueller Zustand aller aktivierten Quellen als Array, für andere Module des Verbunds (z. B. EMS)
 - **`SGW_GetForecast()`**: Vorschau der StromGedacht-Netzampel für einen Zeitraum, auf Basis der bisher nicht angebundenen `/v1/statesRelative`-API (Horizont max. 48 h); GrünstromIndex/Energy-Charts liefern hier laut Verbund-Vorgabe bewusst noch keine Einträge (nicht planungsrelevant)
 - Lizenzwechsel MIT → PolyForm Noncommercial 1.0.0 (NRG-Stack-weite Umstellung: privat/nicht-kommerziell frei, gewerblich lizenzpflichtig)
-- Teil des NRG-Stack-Modulverbunds (vormals „DG65 Energie-Suite") — siehe [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)
+- Teil des NRG-Stack-Modulverbunds (vormals „DG65 Energie-Suite") — siehe [SUITE.md](https://github.com/DG65/NRGEMS/blob/main/SUITE.md)
 - Einheitliche Formular-Optik des NRG-Stack übernommen: „🆕 Neu in Version"-Panel (erscheint bis zur Bestätigung, danach je Version erneut), Versionsnummer im Doku-Panel-Titel
 
 ## 1.4.0 (2026-07-13)

@@ -7,7 +7,7 @@
 [![Check Style](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
-> Teil des **NRG-Stack** — welche Modulstände zusammenpassen: [SUITE.md](https://github.com/DG65/EMS/blob/main/SUITE.md)
+> Teil des **NRG-Stack** — welche Modulstände zusammenpassen: [SUITE.md](https://github.com/DG65/NRGEMS/blob/main/SUITE.md)
 
 IP-Symcon-Modul, das Stromampel-Signale aus bis zu drei Quellen parallel abruft und nebeneinander als Ampel-Widget darstellt:
 
