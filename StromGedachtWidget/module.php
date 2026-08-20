@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.1';
+    private const MODULE_VERSION = '1.7.2';
     private const NEWS_ITEMS = [
+        'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
         'Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt eine sichtbare Rückmeldung (z. B. "✅ 3 von 3 Quelle(n) aktualisiert"), ohne dass du das Formular neu öffnen musst.',
         '🆕 SGW_GetForecast() liefert jetzt auch Vorschau-Einträge für GrünstromIndex (source: "gsi", stündliches Raster) und Energy-Charts (source: "energycharts", 15-Minuten-Raster, begrenztes Zukunftsfenster) — nicht mehr nur StromGedacht.',
         'Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (GrünstromIndex/Energy-Charts bundesweit) und dass "Wenn Datenpunkt" nur aktivierte Quellen zeigt.',

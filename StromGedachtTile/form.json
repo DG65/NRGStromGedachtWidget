@@ -41,6 +41,10 @@
                 {
                     "type": "Label",
                     "caption": "Ausführliche Dokumentation: github.com/DG65/NRGStromGedachtWidget."
+                },
+                {
+                    "type": "Label",
+                    "caption": "Der Button '🔄 Übernehmen erzwingen' ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst – praktisch nach einem Modul-Update, falls die Kachel den neuen Code nicht von selbst übernimmt."
                 }
             ]
         },
@@ -179,7 +183,13 @@
             "onClick": "SGWTILE_ResetStyle($id);"
         }
     ],
-    "actions": [],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
+            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
+        }
+    ],
     "status": [
         {
             "code": 102,

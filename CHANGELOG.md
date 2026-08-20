@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.2 (2026-08-20)
+
+- Neuer Button **"🔄 Übernehmen erzwingen (ohne Formularänderung)"** in beiden Modulen (StromGedachtWidget + StromGedachtTile) — ruft `IPS_ApplyChanges($id)` direkt auf, ohne dass vorher etwas im Formular geändert werden muss. Praktisch nach einem Modul-Update, falls die Instanz den neuen Code nicht von selbst übernimmt. Optionaler Verbund-Vorschlag (EMS), keine Pflicht-Konvention.
+
 ## 1.7.1 (2026-08-20)
 
 - **Sichtbare Rückmeldung** (Verbund-Konvention "Sichtbare Rückmeldung bei jeder Aktion"): Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt direkt im Formular ein Ergebnis (z. B. "✅ 3 von 3 Quelle(n) aktualisiert (12:34:56 Uhr)", "⚠️ Für diese Postleitzahl liegen keine Daten vor", "❌ Keine aktivierte Quelle erreichbar"), ohne dass das Formular neu geöffnet werden muss. `SGW_Update()` gibt dafür jetzt einen kurzen Ergebnistext zurück statt nichts (`echo SGW_Update($id);`). `AckNews()`/`DismissReviewHint()` waren bereits konform (blenden ihr Panel sofort aus).
