@@ -120,8 +120,9 @@ Fällt nur ein Teil der Quellen aus, bleibt die Instanz aktiv — der Ausfall is
 ## PHP-Funktionen
 
 ```php
-// Status sofort von der konfigurierten Quelle abrufen und Variablen aktualisieren
-SGW_Update(int $InstanzID);
+// Status sofort von der konfigurierten Quelle abrufen und Variablen aktualisieren.
+// Rückgabe: kurzer Ergebnistext (z. B. "✅ 3 von 3 Quelle(n) aktualisiert (12:34:56 Uhr)").
+SGW_Update(int $InstanzID): string;
 ```
 
 Weitere Funktionen verwalten die Automationen (v. a. für die Kachel gedacht, siehe [Automationen](#automationen-wenn--dann)): `SGW_GetDataActions`, `SGW_SetDataAction`, `SGW_DeleteDataAction`, `SGW_SetDataActionActive`, `SGW_GetDataActionEditor`, `SGW_GetTargetValueOptions`.

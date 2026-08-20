@@ -136,11 +136,19 @@ foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbidd
     $module->Create();
     $module->ApplyChanges();
     $module->status = IS_ACTIVE;
-    $module->Update();
+    $updateResult = $module->Update();
 
     $problems = [];
     if ($module->status !== $expectedStatus) {
         $problems[] = 'Status ' . $module->status . ' statt ' . $expectedStatus;
+    }
+    // Sichtbare Rückmeldung (Verbund-Konvention): Update() muss einen nicht-leeren
+    // Ergebnistext mit dem zum Status passenden Icon zurückgeben.
+    $expectedIcon = [IS_ACTIVE => '✅', 201 => '⚠️', 202 => '❌', 203 => 'ℹ️'][$expectedStatus] ?? null;
+    if (!is_string($updateResult) || $updateResult === '') {
+        $problems[] = 'Update() liefert keinen Ergebnistext';
+    } elseif ($expectedIcon !== null && strpos($updateResult, $expectedIcon) !== 0) {
+        $problems[] = "Update()-Ergebnistext beginnt nicht mit $expectedIcon: $updateResult";
     }
     foreach ($expectedIdents as $ident) {
         if (!array_key_exists($ident, $module->values)) {

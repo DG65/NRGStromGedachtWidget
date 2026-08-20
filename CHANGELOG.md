@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.1 (2026-08-20)
+
+- **Sichtbare Rückmeldung** (Verbund-Konvention "Sichtbare Rückmeldung bei jeder Aktion"): Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt direkt im Formular ein Ergebnis (z. B. "✅ 3 von 3 Quelle(n) aktualisiert (12:34:56 Uhr)", "⚠️ Für diese Postleitzahl liegen keine Daten vor", "❌ Keine aktivierte Quelle erreichbar"), ohne dass das Formular neu geöffnet werden muss. `SGW_Update()` gibt dafür jetzt einen kurzen Ergebnistext zurück statt nichts (`echo SGW_Update($id);`). `AckNews()`/`DismissReviewHint()` waren bereits konform (blenden ihr Panel sofort aus).
+
 ## 1.7.0 (2026-07-27)
 
 - **`SGW_GetForecast()` erweitert**: liefert jetzt auch Vorschau-Einträge für `source: 'gsi'` (GrünstromIndex, stündliches Raster über mehrere Tage) und `source: 'energycharts'` (ecSignal, 15-Minuten-Raster, aber nur ein knappes Zukunftsfenster) — vorher nur `'stromgedacht'`. Auf konkrete Anfrage des EMS-Moduls für eine "grünste Ladezeit"-Funktion gebaut, Roh-APIs vorher live gegen die Annahmen (24h/15-Minuten für beide Quellen) geprüft: GSI ist tatsächlich stündlich, Energy-Charts deckt nur ~12h Zukunft ab, nicht 24h. Kein künstliches Verfeinern/Auffüllen, um keine falsche Genauigkeit vorzutäuschen. `ecShare` ist bewusst nicht enthalten (passt nicht ins bestehende 3-Werte-`source`-Schema).

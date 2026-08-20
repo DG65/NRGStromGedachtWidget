@@ -14,8 +14,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.0';
+    private const MODULE_VERSION = '1.7.1';
     private const NEWS_ITEMS = [
+        'Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt eine sichtbare Rückmeldung (z. B. "✅ 3 von 3 Quelle(n) aktualisiert"), ohne dass du das Formular neu öffnen musst.',
         '🆕 SGW_GetForecast() liefert jetzt auch Vorschau-Einträge für GrünstromIndex (source: "gsi", stündliches Raster) und Energy-Charts (source: "energycharts", 15-Minuten-Raster, begrenztes Zukunftsfenster) — nicht mehr nur StromGedacht.',
         'Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (GrünstromIndex/Energy-Charts bundesweit) und dass "Wenn Datenpunkt" nur aktivierte Quellen zeigt.',
         'Texte der StromGedacht-Ampel an die offizielle TransnetBW-App/Website angeglichen (Wiedererkennbarkeit für Nutzer, die die App bereits kennen).',
@@ -311,7 +312,12 @@ class StromGedachtWidget extends IPSModule
         $this->UpdateFormField('ReviewHint', 'visible', false);
     }
 
-    public function Update()
+    /**
+     * Ruft alle aktivierten Quellen ab. Gibt einen kurzen Ergebnistext zurück
+     * (Verbund-Konvention "Sichtbare Rückmeldung bei jeder Aktion", SUITE.md) -
+     * der Formular-Button nutzt das per "echo SGW_Update($id);".
+     */
+    public function Update(): string
     {
         $zip = trim($this->ReadPropertyString('ZipCode'));
 
@@ -330,8 +336,10 @@ class StromGedachtWidget extends IPSModule
             $columns[] = $this->FetchEnergyCharts($ok, $failed);
         }
 
+        $now = date('H:i:s');
+
         if (count($columns) === 0) {
-            return;
+            return 'ℹ️ Keine Datenquelle aktiviert (' . $now . ' Uhr)';
         }
 
         if ($ok > 0) {
@@ -339,10 +347,13 @@ class StromGedachtWidget extends IPSModule
             // ausgefallene Quellen sind im Widget als "Keine Daten" sichtbar
             $this->SetStatus(IS_ACTIVE);
             $this->SetValue('Updated', time());
+            $result = '✅ ' . $ok . ' von ' . count($columns) . ' Quelle(n) aktualisiert (' . $now . ' Uhr)';
         } elseif ($failed === 0 && $zipUnknown > 0) {
             $this->SetStatus(self::STATUS_ZIP_UNKNOWN);
+            $result = '⚠️ Für diese Postleitzahl liegen keine Daten vor (' . $now . ' Uhr)';
         } else {
             $this->SetStatus(self::STATUS_API_ERROR);
+            $result = '❌ Keine aktivierte Quelle erreichbar (' . $now . ' Uhr)';
         }
 
         $this->RenderWidget($columns);
@@ -352,6 +363,8 @@ class StromGedachtWidget extends IPSModule
         } catch (Throwable $e) {
             $this->SendDebug('Automation', $e->getMessage(), 0);
         }
+
+        return $result;
     }
 
     // ---------------------------------------------------------------------

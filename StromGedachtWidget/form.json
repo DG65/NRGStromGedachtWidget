@@ -232,7 +232,7 @@
         {
             "type": "Button",
             "caption": "Jetzt aktualisieren",
-            "onClick": "SGW_Update($id);"
+            "onClick": "echo SGW_Update($id);"
         }
     ],
     "status": [
