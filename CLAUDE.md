@@ -42,7 +42,8 @@ deutschem Anzeigetext füllen.
 
 ## Vertragsversionierung (Verbund-Konvention, 23.07.2026)
 
-Manifest: https://github.com/DG65/NRGEMS/blob/main/SUITE.md
+Manifest: `SUITE.md` (siehe Abschnitt "Verbund-Manifest SUITE.md — Bezugsquelle" unten — seit
+31.08.2026 nur noch lokal, nicht mehr in einem GitHub-Repo).
 
 - **Modul-Version** bleibt unser SemVer (Datei `library.json`/`module.json`).
 - **Vertragsversion:** Sobald `SGW_GetState()`/`SGW_GetForecast()` gebaut werden, liefern sie von
