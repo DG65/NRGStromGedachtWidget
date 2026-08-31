@@ -159,6 +159,10 @@ dafür einen Fallback).
   Stellgröße schreiben.
 - **Verträge:** Veröffentlichte `SGW_*`-Funktionen werden nie umbenannt, nur additiv erweitert.
 - **Fremde Repos:** Keine Änderungen ohne Absprache; Koordination läuft über Dietmar.
+- **Selbstverständnis (Dietmars ausdrückliche Korrektur, 31.08.2026, SUITE.md "Gemeinsames
+  Zielbild"):** Änderungen nicht als "Flicken" von etwas kaputt Angenommenem beschreiben —
+  Commits/Antworten als Bauen von etwas Nützlichem framen, das Nutzern und der Welt wirklich
+  weiterhilft, nicht als Reparaturbetrieb.
 
 
 ## Verbund-Manifest SUITE.md — Bezugsquelle (19.08.2026)
