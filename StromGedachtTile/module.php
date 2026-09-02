@@ -59,8 +59,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.1';
+    private const MODULE_VERSION = '1.7.2';
     private const NEWS_ITEMS = [
+        'Sicherheitsfix: Die Automationen-Verwaltung (Regel anlegen/bearbeiten/löschen, Zielvariablen-Liste) wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher war das nur clientseitig ausgeblendet.',
         'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
         'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
         'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
@@ -203,6 +204,15 @@ class StromGedachtTile extends IPSModule
             $this->UpdateVisualizationValue($this->GetFullUpdateMessage());
             return;
         }
+
+        // Automations-Verwaltung serverseitig sperren, wenn "Automationen anzeigen"
+        // deaktiviert ist - ein rein clientseitig ausgeblendetes UI-Element wäre über
+        // einen direkten requestAction()-Aufruf umgehbar (z. B. per Browser-Konsole).
+        $ruleIdents = ['rule', 'ruleEditor', 'targetOpts', 'condOpts', 'ruleSave', 'ruleDelete'];
+        if (in_array($Ident, $ruleIdents, true) && !$this->ReadPropertyBoolean('ShowAutomations')) {
+            return;
+        }
+
         if ($Ident === 'rule') {
             $data = json_decode((string) $Value, true);
             if (is_array($data) && isset($data['i'])) {

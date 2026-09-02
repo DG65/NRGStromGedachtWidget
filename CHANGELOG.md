@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.3 (2026-09-01)
+
+- **Sicherheitsfix (StromGedachtTile):** `RequestAction()` prüfte bei den Automationen-Verwaltungsbefehlen (Regel anlegen/bearbeiten/löschen/umschalten, Zielvariablen- und Wertelisten) bisher nicht, ob "Automationen anzeigen" deaktiviert ist — die UI blendete den Bereich zwar aus, ein direkter `requestAction()`-Aufruf (z. B. über die Browser-Konsole) hätte die Sperre umgangen und sowohl echte Regeln auf beliebige Systemvariablen schreiben als auch die vollständige Liste aller schaltbaren Variablen im System auslesen können. Jetzt serverseitig blockiert, wenn `ShowAutomations` aus ist — unabhängig vom UI-Zustand. Fund entstand aus einer Verbund-Anfrage zur öffentlichen Modulvorstellungs-Demo; per Standalone-Test verifiziert (Bypass-Versuch blockiert, Datenleck verhindert, normale Funktion bei aktivierten Automationen unverändert).
+
 ## 1.7.2 (2026-08-20)
 
 - Neuer Button **"🔄 Übernehmen erzwingen (ohne Formularänderung)"** in beiden Modulen (StromGedachtWidget + StromGedachtTile) — ruft `IPS_ApplyChanges($id)` direkt auf, ohne dass vorher etwas im Formular geändert werden muss. Praktisch nach einem Modul-Update, falls die Instanz den neuen Code nicht von selbst übernimmt. Optionaler Verbund-Vorschlag (EMS), keine Pflicht-Konvention.
