@@ -67,10 +67,13 @@ class IPSModule
     public function ReadPropertyString($name) { return (string) $this->properties[$name]; }
     public function RegisterAttributeBoolean($name, $default) { $this->attributes[$name] ??= $default; }
     public function RegisterAttributeString($name, $default) { $this->attributes[$name] ??= $default; }
+    public function RegisterAttributeInteger($name, $default) { $this->attributes[$name] ??= $default; }
     public function ReadAttributeBoolean($name) { return (bool) $this->attributes[$name]; }
     public function ReadAttributeString($name) { return (string) $this->attributes[$name]; }
+    public function ReadAttributeInteger($name) { return (int) $this->attributes[$name]; }
     public function WriteAttributeBoolean($name, $value) { $this->attributes[$name] = $value; }
     public function WriteAttributeString($name, $value) { $this->attributes[$name] = $value; }
+    public function WriteAttributeInteger($name, $value) { $this->attributes[$name] = $value; }
     public function RegisterTimer($ident, $interval, $script) {}
     public function SetTimerInterval($ident, $interval) { $this->timer = $interval; }
     public function RegisterMessage($sender, $message) {}
@@ -134,7 +137,10 @@ $failures = 0;
 foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbiddenIdents]) {
     $module = new StromGedachtWidget($props + ['UpdateInterval' => 300]);
     $module->Create();
-    $module->ApplyChanges();
+    // Bewusst OHNE ApplyChanges() davor: die ruft intern selbst schon Update() auf
+    // (siehe module.php) und würde diesen expliziten Aufruf sonst in den neuen
+    // Abruf-Cooldown laufen lassen (Rückgabe wäre dann die Wartehinweis-Meldung
+    // statt des tatsächlichen Ergebnistexts, den dieser Test prüfen will).
     $module->status = IS_ACTIVE;
     $updateResult = $module->Update();
 
@@ -199,9 +205,11 @@ $stateCases = [
 foreach ($stateCases as $label => [$props, $expectNull]) {
     $module = new StromGedachtWidget($props + ['UpdateInterval' => 300]);
     $module->Create();
+    // ApplyChanges() ruft intern schon Update() auf - kein zusätzlicher, vom neuen
+    // Abruf-Cooldown betroffener Update()-Aufruf nötig, GetState() liest ohnehin
+    // dieselben, bereits gesetzten Werte.
     $module->ApplyChanges();
     $module->status = IS_ACTIVE;
-    $module->Update();
 
     $state = $module->GetState();
     $problems = [];

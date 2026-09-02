@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.4 (2026-09-01)
+
+- **Abruf-Cooldown:** `SGW_Update()` (Formular-Button, Kachel-Refresh, externe Aufrufe) ist jetzt auf höchstens einen echten Abruf alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs (StromGedacht, Corrently, Energy-Charts) vor Abuse/Rate-Limiting durch versehentliches Mehrfach-Antippen, z. B. bei anonymem Zugriff auf eine öffentliche Demo-Instanz. Bei zu schneller Wiederholung kommt statt eines neuen Abrufs ein Wartehinweis zurück ("⏳ Gerade erst aktualisiert – bitte noch N Sekunde(n) warten"). Der periodische Timer (Mindestintervall 60 s) ist davon nie betroffen. Zweiter Verbund-Vorschlag aus derselben Dashboard-Anfrage wie der Sicherheitsfix unten.
+
 ## 1.7.3 (2026-09-01)
 
 - **Sicherheitsfix (StromGedachtTile):** `RequestAction()` prüfte bei den Automationen-Verwaltungsbefehlen (Regel anlegen/bearbeiten/löschen/umschalten, Zielvariablen- und Wertelisten) bisher nicht, ob "Automationen anzeigen" deaktiviert ist — die UI blendete den Bereich zwar aus, ein direkter `requestAction()`-Aufruf (z. B. über die Browser-Konsole) hätte die Sperre umgangen und sowohl echte Regeln auf beliebige Systemvariablen schreiben als auch die vollständige Liste aller schaltbaren Variablen im System auslesen können. Jetzt serverseitig blockiert, wenn `ShowAutomations` aus ist — unabhängig vom UI-Zustand. Fund entstand aus einer Verbund-Anfrage zur öffentlichen Modulvorstellungs-Demo; per Standalone-Test verifiziert (Bypass-Versuch blockiert, Datenleck verhindert, normale Funktion bei aktivierten Automationen unverändert).

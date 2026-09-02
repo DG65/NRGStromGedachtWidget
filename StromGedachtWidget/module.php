@@ -12,10 +12,18 @@ class StromGedachtWidget extends IPSModule
 
     private const COLOR_GREY = '#9e9e9e';
 
+    // Schutz der drei kostenlosen Dritt-APIs vor zu häufigen manuellen Abrufen
+    // (Kachel-Refresh, Formular-Button, externe SGW_Update()-Aufrufe) - gilt immer,
+    // nicht nur in einer Demo-Instanz. Der periodische Timer liegt mit min. 60s
+    // (UpdateInterval-Untergrenze) sicher darüber und ist davon nie betroffen.
+    private const REFRESH_COOLDOWN_SECONDS = 30;
+
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.2';
+    private const MODULE_VERSION = '1.7.4';
     private const NEWS_ITEMS = [
+        'Manuelle Aktualisierungen (Button, Kachel-Refresh) sind jetzt auf eine alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs vor versehentlichem Mehrfach-Antippen.',
+        'Sicherheitsfix (StromGedachtTile): Die Automationen-Verwaltung wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher nur clientseitig ausgeblendet.',
         'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
         'Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt eine sichtbare Rückmeldung (z. B. "✅ 3 von 3 Quelle(n) aktualisiert"), ohne dass du das Formular neu öffnen musst.',
         '🆕 SGW_GetForecast() liefert jetzt auch Vorschau-Einträge für GrünstromIndex (source: "gsi", stündliches Raster) und Energy-Charts (source: "energycharts", 15-Minuten-Raster, begrenztes Zukunftsfenster) — nicht mehr nur StromGedacht.',
@@ -93,6 +101,7 @@ class StromGedachtWidget extends IPSModule
         $this->RegisterAttributeString('RuleState', '{}');
         $this->RegisterAttributeBoolean('ReviewHintDismissed', false);
         $this->RegisterAttributeString('SeenNews', '');
+        $this->RegisterAttributeInteger('LastUpdateAttempt', 0);
 
         // Profile bewusst getrennt je Datenquelle
         if (!IPS_VariableProfileExists('SGW.State')) {
@@ -320,6 +329,14 @@ class StromGedachtWidget extends IPSModule
      */
     public function Update(): string
     {
+        $lastAttempt = $this->ReadAttributeInteger('LastUpdateAttempt');
+        $elapsed = time() - $lastAttempt;
+        if ($lastAttempt > 0 && $elapsed < self::REFRESH_COOLDOWN_SECONDS) {
+            $wait = self::REFRESH_COOLDOWN_SECONDS - $elapsed;
+            return '⏳ Gerade erst aktualisiert – bitte noch ' . $wait . ' Sekunde(n) warten (Schutz der kostenlosen Dritt-APIs vor zu häufigen Abrufen).';
+        }
+        $this->WriteAttributeInteger('LastUpdateAttempt', time());
+
         $zip = trim($this->ReadPropertyString('ZipCode'));
 
         $columns = [];

@@ -122,6 +122,10 @@ Fällt nur ein Teil der Quellen aus, bleibt die Instanz aktiv — der Ausfall is
 ```php
 // Status sofort von der konfigurierten Quelle abrufen und Variablen aktualisieren.
 // Rückgabe: kurzer Ergebnistext (z. B. "✅ 3 von 3 Quelle(n) aktualisiert (12:34:56 Uhr)").
+// Höchstens alle 30 Sekunden - bei schnellerer Wiederholung (Button, Kachel-Refresh,
+// externer Aufruf) kommt statt eines neuen Abrufs ein "⏳ …Sekunde(n) warten"-Hinweis
+// zurück (Schutz der drei kostenlosen Dritt-APIs). Der periodische Timer ist davon nie
+// betroffen (Mindestintervall 60 s).
 SGW_Update(int $InstanzID): string;
 ```
 
