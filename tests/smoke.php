@@ -13,6 +13,7 @@ const VARIABLETYPE_STRING = 3;
 const KR_READY = 10103;
 const IPS_KERNELSTARTED = 10001;
 const IS_ACTIVE = 102;
+const IS_INACTIVE = 104;
 
 function IPS_VariableProfileExists($name) { return true; }
 function IPS_CreateVariableProfile($name, $type) {}
@@ -150,7 +151,7 @@ foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbidd
     }
     // Sichtbare Rückmeldung (Verbund-Konvention): Update() muss einen nicht-leeren
     // Ergebnistext mit dem zum Status passenden Icon zurückgeben.
-    $expectedIcon = [IS_ACTIVE => '✅', 201 => '⚠️', 202 => '❌', 203 => 'ℹ️'][$expectedStatus] ?? null;
+    $expectedIcon = [IS_ACTIVE => '✅', 201 => '⚠️', 202 => '❌'][$expectedStatus] ?? null;
     if (!is_string($updateResult) || $updateResult === '') {
         $problems[] = 'Update() liefert keinen Ergebnistext';
     } elseif ($expectedIcon !== null && strpos($updateResult, $expectedIcon) !== 0) {
@@ -183,6 +184,27 @@ foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbidd
         $problems === [] ? '' : ' [' . implode('; ', $problems) . ']'
     );
     if (count($problems) > 0) {
+        $failures++;
+    }
+}
+
+// Verbund-Regel 9d (SUITE.md, ausgelöst durch einen ModbusSlave-Vorfall): eine gewollt/
+// dauerhaft ruhende Instanz (hier: keine Datenquelle aktiviert) muss IS_INACTIVE (104) sein,
+// nicht ein Fehlercode >200 - sonst hält ein systemweiter Integrity-Check/Watchdog einen
+// bewusst inaktiven Zustand für kaputt.
+{
+    $module = new StromGedachtWidget([
+        'EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => false,
+        'ZipCode' => '', 'UpdateInterval' => 300,
+    ]);
+    $module->Create();
+    $module->ApplyChanges();
+
+    $label = 'ApplyChanges: keine Quelle aktiviert -> Status IS_INACTIVE (104), kein Fehlercode';
+    if ($module->status === IS_INACTIVE) {
+        printf("PASS %s — Status %d\n", $label, $module->status);
+    } else {
+        printf("FAIL %s — Status %d statt %d\n", $label, $module->status, IS_INACTIVE);
         $failures++;
     }
 }

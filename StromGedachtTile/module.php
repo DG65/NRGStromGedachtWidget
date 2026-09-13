@@ -59,8 +59,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.2';
+    private const MODULE_VERSION = '1.7.3';
     private const NEWS_ITEMS = [
+        '🔧 Interne Robustheit: eingelesene Formularwerte (Farben, Schriftart, Skalierung) werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
         'Sicherheitsfix: Die Automationen-Verwaltung (Regel anlegen/bearbeiten/löschen, Zielvariablen-Liste) wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher war das nur clientseitig ausgeblendet.',
         'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
         'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
@@ -291,11 +292,11 @@ class StromGedachtTile extends IPSModule
     private function GetFullUpdateMessage(): string
     {
         $style = [
-            'bg'        => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorBackground')),
-            'box'       => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorBox')),
-            'text'      => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorText')),
-            'textmuted' => $this->ColorOrEmpty($this->ReadPropertyInteger('ColorTextMuted')),
-            'font'      => $this->FontStack($this->ReadPropertyString('FontFamily')),
+            'bg'        => $this->ColorOrEmpty((int) $this->ReadPropertyInteger('ColorBackground')),
+            'box'       => $this->ColorOrEmpty((int) $this->ReadPropertyInteger('ColorBox')),
+            'text'      => $this->ColorOrEmpty((int) $this->ReadPropertyInteger('ColorText')),
+            'textmuted' => $this->ColorOrEmpty((int) $this->ReadPropertyInteger('ColorTextMuted')),
+            'font'      => $this->FontStack((string) $this->ReadPropertyString('FontFamily')),
             'scale'     => $this->FontScaleValue()
         ];
 
@@ -377,11 +378,11 @@ class StromGedachtTile extends IPSModule
     private function ColorForLevel(?string $level): string
     {
         switch ($level) {
-            case 'supergreen': return $this->ColorHex($this->ReadPropertyInteger('ColorSuperGreen'), '#00bfa5');
-            case 'green':       return $this->ColorHex($this->ReadPropertyInteger('ColorGreen'), '#00c853');
-            case 'yellow':      return $this->ColorHex($this->ReadPropertyInteger('ColorYellow'), '#ffd600');
-            case 'orange':      return $this->ColorHex($this->ReadPropertyInteger('ColorOrange'), '#ff6d00');
-            case 'red':         return $this->ColorHex($this->ReadPropertyInteger('ColorRed'), '#d50000');
+            case 'supergreen': return $this->ColorHex((int) $this->ReadPropertyInteger('ColorSuperGreen'), '#00bfa5');
+            case 'green':       return $this->ColorHex((int) $this->ReadPropertyInteger('ColorGreen'), '#00c853');
+            case 'yellow':      return $this->ColorHex((int) $this->ReadPropertyInteger('ColorYellow'), '#ffd600');
+            case 'orange':      return $this->ColorHex((int) $this->ReadPropertyInteger('ColorOrange'), '#ff6d00');
+            case 'red':         return $this->ColorHex((int) $this->ReadPropertyInteger('ColorRed'), '#d50000');
             default:            return self::COLOR_NODATA;
         }
     }
@@ -438,7 +439,7 @@ class StromGedachtTile extends IPSModule
 
     private function FontScaleValue(): float
     {
-        $v = $this->ReadPropertyFloat('FontScale');
+        $v = (float) $this->ReadPropertyFloat('FontScale');
         if ($v < 0.5) {
             $v = 0.5;
         }

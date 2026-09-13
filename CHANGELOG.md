@@ -2,6 +2,11 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.5 (2026-09-13)
+
+- **Interne Robustheit (Verbund-Regel 9c, SUITE.md):** Werte aus `ReadPropertyString()`/`ReadAttributeString()` konnten während eines Modul-Neuladens (Kernel-Runlevel noch nicht bereit) `false` statt des erwarteten Typs liefern — mit `declare(strict_types=1)` würde daraus ein `TypeError`, der die ganze Aufrufkette abreißt (z. B. beim PLZ-Abruf, beim Lesen der Automationen-Zwischenstände in `StromGedachtWidget`, oder beim Aufbau der Kachel-Optik in `StromGedachtTile`). Jetzt an allen betroffenen Stellen explizit typgecastet (`(string)`/`(int)`/`(float)`), bevor der Wert weiterverarbeitet wird. Fund entstand aus einem verbundweiten Hinweis (Tibber/OCPPHub/Dashboard, dreimal unabhängig aufgetreten).
+- **Statuscode-Fix (Verbund-Regel 9d, SUITE.md):** Eine Instanz ohne aktivierte Datenquelle setzte bisher einen Fehlerstatus (203) statt `IS_INACTIVE` (104) — ein bewusst/dauerhaft ruhender Zustand ist kein Fehler. Für einen systemweiten Integrity-Check/Watchdog sah das aber wie ein kaputtes Modul aus (ausgelöst durch einen echten Vorfall bei ModbusSlave: geparkte Instanzen mit Fehlerstatus lösten dort stundenlange, unnötige Neustarts aus). Jetzt korrekt `IS_INACTIVE`, wie bereits bei "keine PLZ eingegeben".
+
 ## 1.7.4 (2026-09-01)
 
 - **Abruf-Cooldown:** `SGW_Update()` (Formular-Button, Kachel-Refresh, externe Aufrufe) ist jetzt auf höchstens einen echten Abruf alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs (StromGedacht, Corrently, Energy-Charts) vor Abuse/Rate-Limiting durch versehentliches Mehrfach-Antippen, z. B. bei anonymem Zugriff auf eine öffentliche Demo-Instanz. Bei zu schneller Wiederholung kommt statt eines neuen Abrufs ein Wartehinweis zurück ("⏳ Gerade erst aktualisiert – bitte noch N Sekunde(n) warten"). Der periodische Timer (Mindestintervall 60 s) ist davon nie betroffen. Zweiter Verbund-Vorschlag aus derselben Dashboard-Anfrage wie der Sicherheitsfix unten.

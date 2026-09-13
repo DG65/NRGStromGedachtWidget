@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 class StromGedachtWidget extends IPSModule
 {
-    // Instanz-Status
+    // Instanz-Status. STATUS_NO_ZIP/STATUS_NO_SOURCE sind bewusst IS_INACTIVE (104), nicht ein
+    // Fehlercode >200 - "keine Quelle aktiviert"/"keine PLZ eingegeben" ist ein gewollter, evtl.
+    // dauerhafter Ruhezustand, kein Fehler. Ein systemweiter Integrity-Check/Watchdog sieht sonst
+    // nur den nackten Status und hält einen absichtlich ruhenden Zustand für kaputt (Verbund-
+    // Regel 9d, SUITE.md, ausgelöst durch einen ModbusSlave-Vorfall). STATUS_ZIP_UNKNOWN/
+    // STATUS_API_ERROR bleiben echte Fehlercodes (falsche PLZ, API nicht erreichbar).
     private const STATUS_NO_ZIP = 104;
+    private const STATUS_NO_SOURCE = 104;
     private const STATUS_ZIP_UNKNOWN = 201;
     private const STATUS_API_ERROR = 202;
-    private const STATUS_NO_SOURCE = 203;
 
     private const COLOR_GREY = '#9e9e9e';
 
@@ -20,8 +25,10 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.4';
+    private const MODULE_VERSION = '1.7.5';
     private const NEWS_ITEMS = [
+        'Eine Instanz ohne aktivierte Datenquelle zeigt jetzt korrekt "inaktiv" statt eines Fehlerstatus — wichtig für automatische Systemprüfungen im Verbund.',
+        '🔧 Interne Robustheit: eingelesene Formularwerte werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
         'Manuelle Aktualisierungen (Button, Kachel-Refresh) sind jetzt auf eine alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs vor versehentlichem Mehrfach-Antippen.',
         'Sicherheitsfix (StromGedachtTile): Die Automationen-Verwaltung wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher nur clientseitig ausgeblendet.',
         'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
@@ -169,7 +176,7 @@ class StromGedachtWidget extends IPSModule
             return;
         }
 
-        if (($sg || $gsi) && trim($this->ReadPropertyString('ZipCode')) === '') {
+        if (($sg || $gsi) && trim((string) $this->ReadPropertyString('ZipCode')) === '') {
             $this->SetStatus(self::STATUS_NO_ZIP);
             $this->SetTimerInterval('UpdateTimer', 0);
             return;
@@ -337,7 +344,7 @@ class StromGedachtWidget extends IPSModule
         }
         $this->WriteAttributeInteger('LastUpdateAttempt', time());
 
-        $zip = trim($this->ReadPropertyString('ZipCode'));
+        $zip = trim((string) $this->ReadPropertyString('ZipCode'));
 
         $columns = [];
         $ok = 0;
@@ -450,7 +457,7 @@ class StromGedachtWidget extends IPSModule
     /** Horizont: API-Maximum 48h ab jetzt. Unregelmäßige Zustands-Segmente, kein festes Raster. */
     private function fetchStromGedachtForecast(int $Von, int $Bis): array
     {
-        $zip = trim($this->ReadPropertyString('ZipCode'));
+        $zip = trim((string) $this->ReadPropertyString('ZipCode'));
         if ($zip === '') {
             return [];
         }
@@ -499,7 +506,7 @@ class StromGedachtWidget extends IPSModule
      */
     private function fetchGsiForecast(int $Von, int $Bis): array
     {
-        $zip = trim($this->ReadPropertyString('ZipCode'));
+        $zip = trim((string) $this->ReadPropertyString('ZipCode'));
         if ($zip === '') {
             return [];
         }
@@ -952,7 +959,7 @@ class StromGedachtWidget extends IPSModule
         if (!is_array($rules)) {
             $rules = [];
         }
-        $state = json_decode($this->ReadAttributeString('RuleState'), true);
+        $state = json_decode((string) $this->ReadAttributeString('RuleState'), true);
         if (!is_array($state)) {
             $state = [];
         }
