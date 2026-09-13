@@ -149,6 +149,24 @@ fehlschlagen — bei Fehlern erst ein zweites Mal laufen lassen, bevor man Ursac
 betreibt. `api.stromgedacht.de` ist aus Dietmars Netz nur über IPv4 erreichbar (das Modul hat
 dafür einen Fallback).
 
+## Prüfen vor jedem Push auf `beta`/`main` (Migrationsvergleich, SUITE.md 9e, 13.09.2026)
+
+Zusätzlich zu den Checks oben, **vor jedem Push auf `beta` (bzw. `main`, sobald von dort
+veröffentlicht wird)** — nicht bei jedem `ems-integration`-Push, da dort noch nichts an
+Bestandsnutzer geht:
+
+```bash
+php /Users/dietmar/Nextcloud/Claude/.tools/migrationsvergleich.php . origin/beta HEAD
+```
+
+Vergleicht den zu pushenden Stand gegen `origin/beta` und meldet BRUCH (Modul/GUID entfernt,
+Präfix geändert, Property/Ident entfernt oder Typ geändert, öffentliche Funktion entfernt/
+Parameterzahl geändert, Vertrags-Major-Sprung), WARNUNG oder HINWEIS. **Rückgabecode 1 = erst
+mit Dietmar klären, nicht ungeprüft pushen** — Ziel ist, dass kein Push bei Bestandsnutzern
+eine Migration erzwingt (Dietmars Auftrag zum bevorstehenden ersten Symcon-Store-Start, über
+EMS an alle Store-Start-Module verteilt). Details siehe Memory `nrg-stack-store-review-
+erkenntnisse` Punkt 14 und `project_stromgedacht`.
+
 ## Verbund-Regeln (Kurzfassung)
 
 - **Eigenständigkeit:** Das Modul muss ohne jedes andere Modul voll lauffähig sein. Jeder Aufruf
