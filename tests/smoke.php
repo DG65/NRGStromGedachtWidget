@@ -23,6 +23,17 @@ function IPS_SetVariableProfileDigits($name, $digits) {}
 function IPS_SetVariableProfileText($name, $prefix, $suffix) {}
 function IPS_GetKernelRunlevel() { return KR_READY; }
 
+// Instanzregister für das Ausblenden-Teilen (PropagateDismiss()/AdoptDismissFromSibling()):
+// __instancesByModule simuliert IPS_GetInstanceListByModuleID() (Test registriert Instanzen
+// explizit, wo Geschwister-Verhalten geprüft wird - bleibt sonst leer, bestehende Fälle bleiben
+// unberührt), __instancesById simuliert den generierten SGW_*-Funktionsaufruf auf eine andere
+// Instanz (echtes IP-Symcon generiert PREFIX_Methode($id,...)-Wrapper automatisch, hier von Hand).
+$GLOBALS['__instancesByModule'] = [];
+$GLOBALS['__instancesById'] = [];
+function IPS_GetInstanceListByModuleID($guid) { return $GLOBALS['__instancesByModule'][$guid] ?? []; }
+function SGW_AdoptDismissState($id, $what, $value) { $GLOBALS['__instancesById'][$id]->AdoptDismissState($what, $value); }
+function SGW_GetDismissState($id) { return $GLOBALS['__instancesById'][$id]->GetDismissState(); }
+
 // Fremde Zielvariablen (für DataActions-Regeln), für die GetDataActions()/
 // GetConfigurationForm() Namen auflösen müssen - Register je Vid.
 const VARIABLETYPE_BOOLEAN = 0;
@@ -57,6 +68,7 @@ class IPSModule
     {
         $this->properties = $properties;
         $this->InstanceID = self::$nextVid++;
+        $GLOBALS['__instancesById'][$this->InstanceID] = $this;
     }
     public function Create() {}
     public function ApplyChanges() {}
@@ -99,6 +111,7 @@ class IPSModule
     }
     public function GetValue($ident) { return $this->values[$ident] ?? null; }
     public function SetStatus($status) { $this->status = $status; }
+    public function UpdateFormField($field, $key, $value) {}
 
     public function SendDebug($caption, $message, $format)
     {
@@ -460,6 +473,50 @@ $mNoConflict = makeModuleWithRule(9002);
 $actionsNoConflict = json_decode($mNoConflict->GetDataActions(), true);
 $ok = ($actionsNoConflict[0]['emsConflict'] ?? true) === false;
 printf("%s EMS-Konfliktcheck: EMS steuert andere Variable -> kein Fehlalarm\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// Ausblenden-Teilen über mehrere Geschwister-Instanzen (SUITE.md "Ausblenden über mehrere
+// Instanzen desselben Moduls teilen", 14.09.2026). Keine Quelle aktiviert (Status 104, kein
+// echter API-Aufruf) - hier geht es nur um die Attribut-Propagation, nicht um Update().
+const GUID_WIDGET_TEST = '{D5A8C3A1-2222-4A55-8888-123456789003}';
+$noSourceProps = ['EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => false, 'ZipCode' => '', 'UpdateInterval' => 300];
+// MODULE_VERSION ist private - per Reflection lesen statt im Test zu duplizieren (sonst
+// veraltet die erwartete Versionsnummer hier bei jedem künftigen Versionsbump lautlos).
+$moduleVersion = (new ReflectionClass('StromGedachtWidget'))->getConstant('MODULE_VERSION');
+
+$sibA = new StromGedachtWidget($noSourceProps);
+$sibA->Create();
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST][] = $sibA->InstanceID;
+$sibB = new StromGedachtWidget($noSourceProps);
+$sibB->Create();
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST][] = $sibB->InstanceID;
+$sibA->status = IS_ACTIVE;
+$sibB->status = IS_ACTIVE;
+
+$sibA->AckPurposeIntro();
+$sibA->AckForumHint();
+$sibA->AckNews();
+$ok = $sibB->ReadAttributeBoolean('PurposeIntroGone') === true
+    && $sibB->ReadAttributeBoolean('ForumHintGone') === true
+    && $sibB->ReadAttributeString('SeenNews') === $moduleVersion;
+printf("%s Ausblenden-Teilen: Bestätigung an Instanz A propagiert sofort zu Geschwister-Instanz B\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// Später hinzugekommene Instanz übernimmt beim allerersten ApplyChanges() automatisch den
+// Stand bereits registrierter Geschwister-Instanzen (A/B, oben bereits bestätigt) - ganz
+// ohne selbst je Ack* aufzurufen. Muss dafür NICHT selbst vorher registriert sein: die
+// Registrierung ist nur relevant, damit ANDERE Instanzen diese hier später finden können.
+$sibC = new StromGedachtWidget($noSourceProps);
+$sibC->Create();
+$sibC->ApplyChanges();
+$ok = $sibC->ReadAttributeBoolean('PurposeIntroGone') === true
+    && $sibC->ReadAttributeBoolean('ForumHintGone') === true
+    && $sibC->ReadAttributeString('SeenNews') === $moduleVersion;
+printf("%s Ausblenden-Teilen: neu hinzugekommene Instanz C übernimmt beim ersten ApplyChanges() den Stand vorhandener Geschwister-Instanzen\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
 }

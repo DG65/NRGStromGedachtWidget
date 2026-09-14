@@ -25,8 +25,10 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.7';
+    private const MODULE_VERSION = '1.8.0';
     private const NEWS_ITEMS = [
+        'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular. Der Forum-Hinweis ist jetzt ein eigenes, dismissibles Panel "💬 Feedback im Symcon-Forum" statt der alten Zeile.',
+        'Hast du mehrere StromGedacht-Instanzen (z. B. verschiedene PLZ/Regionen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Instanz einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
         'Fix: Der Konsolen-Statustext bei "keine Datenquelle aktiviert" zeigte fälschlich "Bitte Postleitzahl konfigurieren" an (beide Fälle teilen sich seit dem letzten Update denselben Statuscode 104) — jetzt ein gemeinsamer, zutreffender Text für beide Fälle.',
         '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
         'Eine Instanz ohne aktivierte Datenquelle zeigt jetzt korrekt "inaktiv" statt eines Fehlerstatus — wichtig für automatische Systemprüfungen im Verbund.',
@@ -43,6 +45,13 @@ class StromGedachtWidget extends IPSModule
         'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
         'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
     ];
+
+    // Eigene Modul-GUID (= module.json "id") für die Geschwister-Instanz-Suche beim
+    // Ausblenden-Teilen (Cross-Instanz, siehe PropagateDismiss()).
+    private const GUID_WIDGET = '{D5A8C3A1-2222-4A55-8888-123456789003}';
+    private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-strom-gedacht-ampel-widget/143960';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGStromGedachtWidget/blob/ems-integration/LICENSE';
+    private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     // Zustände laut StromGedacht API:
     // -1 = Supergrün, 1 = Grün, 2 = Gelb (veraltet), 3 = Orange, 4 = Rot
@@ -108,7 +117,11 @@ class StromGedachtWidget extends IPSModule
         $this->RegisterPropertyString('DataActions', '[]');
 
         $this->RegisterAttributeString('RuleState', '{}');
+        // ReviewHintDismissed bleibt registriert (Bestandskompatibilität für
+        // SGW_DismissReviewHint(), veröffentlichte Funktion) - der neue Forum-Hinweis
+        // nutzt ForumHintGone, prüft aber beide (siehe ForumHint()).
         $this->RegisterAttributeBoolean('ReviewHintDismissed', false);
+        $this->RegisterAttributeBoolean('ForumHintGone', false);
         $this->RegisterAttributeBoolean('PurposeIntroGone', false);
         $this->RegisterAttributeString('SeenNews', '');
         $this->RegisterAttributeInteger('LastUpdateAttempt', 0);
@@ -151,6 +164,11 @@ class StromGedachtWidget extends IPSModule
             $this->RegisterMessage(0, IPS_KERNELSTARTED);
             return;
         }
+
+        // Vor der Bereitschaftsprüfung (die bei fehlender Quelle/PLZ früh zurückkehrt) -
+        // das Ausblenden-Teilen gilt unabhängig davon, ob diese Instanz schon fertig
+        // konfiguriert ist.
+        $this->AdoptDismissFromSibling();
 
         $sg = $this->ReadPropertyBoolean('EnableStromGedacht');
         $gsi = $this->ReadPropertyBoolean('EnableGSI');
@@ -272,29 +290,13 @@ class StromGedachtWidget extends IPSModule
             $insertWarning($form['elements']);
         }
 
-        // Einmaliger Feedback-Hinweis: erscheint, bis er per Button ausgeblendet wird
-        if (!$this->ReadAttributeBoolean('ReviewHintDismissed')) {
-            $form['elements'][] = [
-                'type'  => 'RowLayout',
-                'name'  => 'ReviewHint',
-                'items' => [
-                    [
-                        'type'    => 'Label',
-                        'caption' => '⭐ Gefällt dir dieses Modul? Über eine Bewertung im Module Store oder eine Rückmeldung in der Symcon-Community freue ich mich!'
-                    ],
-                    [
-                        'type'    => 'Label',
-                        'link'    => true,
-                        'caption' => 'https://community.symcon.de/t/modul-strom-gedacht-ampel-widget/143960'
-                    ],
-                    [
-                        'type'    => 'Button',
-                        'caption' => 'Nicht mehr anzeigen',
-                        'onClick' => 'SGW_DismissReviewHint($id);'
-                    ]
-                ]
-            ];
+        // Symcon-Forum-Hinweis, dann Lizenz-/Spenden-Hinweis - beide ganz unten,
+        // nach den Haupteinstellungen (Formular-Konvention Punkt 4/5, SUITE.md)
+        $forumHint = $this->ForumHint();
+        if ($forumHint !== null) {
+            $form['elements'][] = $forumHint;
         }
+        $form['elements'][] = $this->LicenseHint();
 
         // "🆕 Neu in Version X.Y"-Panel ganz oben: erscheint bis zur Bestätigung, danach je
         // Version erneut (Attribut speichert die zuletzt bestätigte Version)
@@ -334,6 +336,7 @@ class StromGedachtWidget extends IPSModule
     {
         $this->WriteAttributeBoolean('PurposeIntroGone', true);
         $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+        $this->PropagateDismiss('PurposeIntro');
     }
 
     /** "🆕 Neu in Version"-Panel: null, wenn der Nutzer diese Version schon bestätigt hat. */
@@ -354,12 +357,153 @@ class StromGedachtWidget extends IPSModule
     {
         $this->WriteAttributeString('SeenNews', self::MODULE_VERSION);
         $this->UpdateFormField('NewsPanel', 'visible', false);
+        $this->PropagateDismiss('News', self::MODULE_VERSION);
     }
 
+    /** Symcon-Forum-Hinweis — einmalig dismissible, kein Versionsbezug (Formular-Konvention Punkt 4, SUITE.md). */
+    private function ForumHint(): ?array
+    {
+        if ($this->ReadAttributeBoolean('ForumHintGone') || $this->ReadAttributeBoolean('ReviewHintDismissed')) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
+            'caption' => '💬  Feedback im Symcon-Forum',
+            'items' => [
+                ['type' => 'Label', 'caption' => '⭐ Gefällt dir dieses Modul? Über eine Bewertung im Module Store oder eine Rückmeldung im Community-Thread freue ich mich!'],
+                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckForumHint($id);'],
+            ],
+        ];
+    }
+
+    public function AckForumHint(): void
+    {
+        $this->WriteAttributeBoolean('ForumHintGone', true);
+        $this->UpdateFormField('ForumHintPanel', 'visible', false);
+        $this->PropagateDismiss('ForumHint');
+    }
+
+    /**
+     * Alter Funktionsname bleibt aus Vertragsgründen erhalten (veröffentlichte SGW_-Funktion,
+     * wird nie entfernt, siehe Migrationsvergleich SUITE.md 9e) - deckt sich inhaltlich mit
+     * dem neuen Forum-Hinweis-Panel oben.
+     */
     public function DismissReviewHint(): void
     {
         $this->WriteAttributeBoolean('ReviewHintDismissed', true);
-        $this->UpdateFormField('ReviewHint', 'visible', false);
+        $this->AckForumHint();
+    }
+
+    /**
+     * Lizenz-/Unterstützungs-Hinweis (Formular-Konvention Punkt 5, SUITE.md) - Wortlaut
+     * verbundweit identisch ("Variante A"), nur LICENSE_URL je Repo angepasst. Anders als
+     * der Forum-Hinweis bewusst NICHT wegklickbar - eine Lizenz ist kein einmaliger Hinweis.
+     */
+    private function LicenseHint(): array
+    {
+        return [
+            'type' => 'ExpansionPanel', 'expanded' => false,
+            'caption' => '🧡  Über dieses Modul',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
+                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
+                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
+                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+            ],
+        ];
+    }
+
+    /**
+     * Ausblenden von "Wozu dieses Modul?"/"Was ist Neu?"/Forum-Hinweis über alle
+     * Geschwister-Instanzen dieses Moduls teilen (SUITE.md "Ausblenden über mehrere
+     * Instanzen desselben Moduls teilen", 14.09.2026) - z. B. mehrere StromGedacht-
+     * Instanzen für verschiedene PLZ/Regionen. Ruft bei jeder Geschwister-Instanz NUR
+     * den reinen Übernahme-Schritt auf (AdoptDismissState), nicht erneut die volle
+     * Ack-Methode - dadurch kein Ping-Pong möglich, ganz ohne Prozessmerker.
+     */
+    private function PropagateDismiss(string $what, string $value = ''): void
+    {
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_WIDGET) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                SGW_AdoptDismissState($sib, $what, $value);
+            } catch (\Throwable $e) {
+                // Eine Geschwister-Instanz mitten im Reload/Löschen darf das Ausblenden
+                // der aufrufenden Instanz nicht mitreißen - @ hält Fatals nicht auf.
+            }
+        }
+    }
+
+    /** Reiner Übernahme-Schritt für eine Geschwister-Instanz - siehe PropagateDismiss(). */
+    public function AdoptDismissState(string $what, string $value): void
+    {
+        switch ($what) {
+            case 'PurposeIntro':
+                $this->WriteAttributeBoolean('PurposeIntroGone', true);
+                $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
+                break;
+            case 'ForumHint':
+                $this->WriteAttributeBoolean('ForumHintGone', true);
+                $this->UpdateFormField('ForumHintPanel', 'visible', false);
+                break;
+            case 'News':
+                $this->WriteAttributeString('SeenNews', $value);
+                $this->UpdateFormField('NewsPanel', 'visible', false);
+                break;
+        }
+    }
+
+    /** Für Geschwister-Instanzen, die beim erstmaligen Kontakt den Ausblenden-Stand übernehmen wollen - siehe AdoptDismissFromSibling(). */
+    public function GetDismissState(): array
+    {
+        return [
+            'purposeIntroGone' => $this->ReadAttributeBoolean('PurposeIntroGone'),
+            'forumHintGone'    => $this->ReadAttributeBoolean('ForumHintGone'),
+            'seenNews'         => $this->ReadAttributeString('SeenNews'),
+        ];
+    }
+
+    /**
+     * Gegenrichtung zu PropagateDismiss(): eine neu angelegte Instanz sieht beim ersten
+     * ApplyChanges() bei einer beliebigen Geschwister-Instanz nach und übernimmt deren
+     * Stand, statt die Hinweise erneut zu zeigen, obwohl der Nutzer sie an anderer Stelle
+     * schon bestätigt hat. Zieht nur vor (false→true, ältere→neuere News-Version),
+     * überschreibt nie einen schon weiter fortgeschrittenen eigenen Stand.
+     */
+    private function AdoptDismissFromSibling(): void
+    {
+        if ($this->ReadAttributeBoolean('PurposeIntroGone') && $this->ReadAttributeBoolean('ForumHintGone')
+            && $this->ReadAttributeString('SeenNews') === self::MODULE_VERSION) {
+            return;
+        }
+        foreach (IPS_GetInstanceListByModuleID(self::GUID_WIDGET) as $sib) {
+            if ($sib === $this->InstanceID) {
+                continue;
+            }
+            try {
+                $state = SGW_GetDismissState($sib);
+            } catch (\Throwable $e) {
+                continue;
+            }
+            if (!is_array($state)) {
+                continue;
+            }
+            if (!$this->ReadAttributeBoolean('PurposeIntroGone') && !empty($state['purposeIntroGone'])) {
+                $this->WriteAttributeBoolean('PurposeIntroGone', true);
+            }
+            if (!$this->ReadAttributeBoolean('ForumHintGone') && !empty($state['forumHintGone'])) {
+                $this->WriteAttributeBoolean('ForumHintGone', true);
+            }
+            if ($this->ReadAttributeString('SeenNews') !== self::MODULE_VERSION && ($state['seenNews'] ?? '') === self::MODULE_VERSION) {
+                $this->WriteAttributeString('SeenNews', self::MODULE_VERSION);
+            }
+            break;
+        }
     }
 
     /**

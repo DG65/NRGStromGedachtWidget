@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.8.0 (2026-09-14)
+
+- **"🧡 Über dieses Modul"-Panel** (Lizenz/Spenden, NRG-Stack-Formular-Konvention Punkt 5) in beiden Modulen ergänzt — verbundweit identischer Wortlaut, ganz unten im Formular, nicht ausblendbar.
+- **Forum-Hinweis überarbeitet:** eigenes, dismissibles ExpansionPanel "💬 Feedback im Symcon-Forum" statt der alten Zeile im Widget; in der Kachel gab es bisher gar keinen — jetzt ebenfalls vorhanden. Die alte `SGW_DismissReviewHint()`-Funktion bleibt aus Vertragsgründen erhalten (veröffentlichte Funktion, wird nie entfernt) und wirkt jetzt wie der neue Hinweis.
+- **Ausblenden über mehrere Instanzen teilen:** Wer mehrere StromGedacht-Instanzen betreibt (z. B. verschiedene PLZ/Regionen) oder mehrere Kacheln, muss "Wozu dieses Modul?"/"Was ist Neu?"/den Forum-Hinweis nicht mehr an jeder Instanz einzeln bestätigen — ein Klick an einer reicht für alle Geschwister-Instanzen desselben Moduls, auch für später neu hinzukommende. NRG-Stack-Konvention nach MeterHub-Vorbild.
+
 ## 1.7.7 (2026-09-14)
 
 - **Fix (form.json):** Beim 9d-Statuscode-Fix in v1.7.5 wurden `STATUS_NO_ZIP` und `STATUS_NO_SOURCE` beide auf 104 gelegt, die Konsolen-Bildunterschrift in `form.json` aber nicht nachgezogen — bei "keine Datenquelle aktiviert" stand dort weiterhin fälschlich "Bitte Postleitzahl konfigurieren" (Text des alten, separaten Codes 203). Jetzt ein gemeinsamer, zutreffender Text für Code 104, toter 203-Eintrag entfernt. Gefunden bei einer angeforderten Durchsicht der Doku-/Hilfe-Texte vor dem Store-Launch.
