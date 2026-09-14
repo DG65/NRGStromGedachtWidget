@@ -25,8 +25,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.5';
+    private const MODULE_VERSION = '1.7.6';
     private const NEWS_ITEMS = [
+        '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
         'Eine Instanz ohne aktivierte Datenquelle zeigt jetzt korrekt "inaktiv" statt eines Fehlerstatus — wichtig für automatische Systemprüfungen im Verbund.',
         '🔧 Interne Robustheit: eingelesene Formularwerte werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
         'Manuelle Aktualisierungen (Button, Kachel-Refresh) sind jetzt auf eine alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs vor versehentlichem Mehrfach-Antippen.',
@@ -107,6 +108,7 @@ class StromGedachtWidget extends IPSModule
 
         $this->RegisterAttributeString('RuleState', '{}');
         $this->RegisterAttributeBoolean('ReviewHintDismissed', false);
+        $this->RegisterAttributeBoolean('PurposeIntroGone', false);
         $this->RegisterAttributeString('SeenNews', '');
         $this->RegisterAttributeInteger('LastUpdateAttempt', 0);
 
@@ -300,7 +302,37 @@ class StromGedachtWidget extends IPSModule
             array_unshift($form['elements'], $banner);
         }
 
+        // "👋 Wozu dieses Modul?"-Panel ganz oben, VOR dem News-Panel (NRG-Stack-Formular-
+        // Konvention Punkt 0, SUITE.md) - zuletzt unshiften, damit es vor dem News-Panel landet
+        $purposeIntro = $this->PurposeIntro();
+        if ($purposeIntro !== null) {
+            array_unshift($form['elements'], $purposeIntro);
+        }
+
         return json_encode($form);
+    }
+
+    /** "👋 Wozu dieses Modul?"-Panel: null, wenn der Nutzer es schon bestätigt hat. */
+    private function PurposeIntro(): ?array
+    {
+        if ($this->ReadAttributeBoolean('PurposeIntroGone')) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Diese Instanz liest die StromGedacht-Netzampel (TransnetBW) sowie wahlweise den GrünstromIndex und das Energy-Charts-Signal aus und zeigt dir, wann Strom im Netz gerade besonders grün oder besonders knapp ist.'],
+                ['type' => 'Label', 'caption' => 'Damit kannst du selbst einfache Wenn→Dann-Regeln bauen (z. B. Warmwasser bei Supergrün einschalten) oder die Werte über SGW_GetState()/SGW_GetForecast() an ein Energiemanagement-Modul wie das NRG-Stack EMS weiterreichen, das komplexere Entscheidungen trifft.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    public function AckPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean('PurposeIntroGone', true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
     }
 
     /** "🆕 Neu in Version"-Panel: null, wenn der Nutzer diese Version schon bestätigt hat. */

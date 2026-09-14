@@ -59,8 +59,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.3';
+    private const MODULE_VERSION = '1.7.6';
     private const NEWS_ITEMS = [
+        '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
         '🔧 Interne Robustheit: eingelesene Formularwerte (Farben, Schriftart, Skalierung) werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
         'Sicherheitsfix: Die Automationen-Verwaltung (Regel anlegen/bearbeiten/löschen, Zielvariablen-Liste) wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher war das nur clientseitig ausgeblendet.',
         'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
@@ -74,6 +75,7 @@ class StromGedachtTile extends IPSModule
         parent::Create();
 
         $this->RegisterAttributeString('SeenNews', '');
+        $this->RegisterAttributeBoolean('PurposeIntroGone', false);
         $this->RegisterPropertyInteger('SourceInstance', 0);
         $this->RegisterPropertyBoolean('AdoptWidgetName', true);
         $this->RegisterPropertyInteger('ColorSuperGreen', self::DEF_SUPERGREEN);
@@ -167,7 +169,37 @@ class StromGedachtTile extends IPSModule
             array_unshift($form['elements'], $banner);
         }
 
+        // "👋 Wozu dieses Modul?"-Panel ganz oben, VOR dem News-Panel (NRG-Stack-Formular-
+        // Konvention Punkt 0, SUITE.md) - zuletzt unshiften, damit es vor dem News-Panel landet
+        $purposeIntro = $this->PurposeIntro();
+        if ($purposeIntro !== null) {
+            array_unshift($form['elements'], $purposeIntro);
+        }
+
         return json_encode($form);
+    }
+
+    /** "👋 Wozu dieses Modul?"-Panel: null, wenn der Nutzer es schon bestätigt hat. */
+    private function PurposeIntro(): ?array
+    {
+        if ($this->ReadAttributeBoolean('PurposeIntroGone')) {
+            return null;
+        }
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
+            'caption' => '👋  Wozu dieses Modul?',
+            'items' => [
+                ['type' => 'Label', 'caption' => 'Diese Kachel zeigt die Ampel-/Signalwerte einer StromGedachtWidget-Instanz direkt im WebFront an — praktisch, wenn du unterwegs oder auf einem Tablet im Blick behalten willst, wann Strom im Netz gerade besonders grün oder besonders knapp ist.'],
+                ['type' => 'Label', 'caption' => 'Zusätzlich kannst du hier, ohne die Verwaltungskonsole zu öffnen, eigene Wenn→Dann-Regeln anlegen, bearbeiten und aktivieren (z. B. Warmwasser bei Supergrün einschalten) — dieselben Regeln, die auch im klassischen Instanzformular des Widgets verfügbar sind.'],
+                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGWTILE_AckPurposeIntro($id);'],
+            ],
+        ];
+    }
+
+    public function AckPurposeIntro(): void
+    {
+        $this->WriteAttributeBoolean('PurposeIntroGone', true);
+        $this->UpdateFormField('PurposeIntroPanel', 'visible', false);
     }
 
     /** "🆕 Neu in Version"-Panel: null, wenn der Nutzer diese Version schon bestätigt hat. */

@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.6 (2026-09-14)
+
+- **Neues Panel "👋 Wozu dieses Modul?"** ganz oben im Instanzformular (vor dem "Neu in Version"-Panel), in beiden Modulen (StromGedachtWidget + StromGedachtTile). Kurze Erklärung in 2–3 Sätzen, was das Modul liest/tut und welchen Nutzen das stiftet — einmalig ausblendbar (nicht versionsgebunden, da sich der Zweck eines Moduls nicht mit jedem Release ändert). NRG-Stack-Formular-Konvention Punkt 0 (SUITE.md), ausgelöst durch Praxis-Feedback eines Nutzers, der zu Beginn nicht wusste, wofür das Modul gedacht ist. Referenzimplementierung MeterHub.
+
 ## 1.7.5 (2026-09-13)
 
 - **Interne Robustheit (Verbund-Regel 9c, SUITE.md):** Werte aus `ReadPropertyString()`/`ReadAttributeString()` konnten während eines Modul-Neuladens (Kernel-Runlevel noch nicht bereit) `false` statt des erwarteten Typs liefern — mit `declare(strict_types=1)` würde daraus ein `TypeError`, der die ganze Aufrufkette abreißt (z. B. beim PLZ-Abruf, beim Lesen der Automationen-Zwischenstände in `StromGedachtWidget`, oder beim Aufbau der Kachel-Optik in `StromGedachtTile`). Jetzt an allen betroffenen Stellen explizit typgecastet (`(string)`/`(int)`/`(float)`), bevor der Wert weiterverarbeitet wird. Fund entstand aus einem verbundweiten Hinweis (Tibber/OCPPHub/Dashboard, dreimal unabhängig aufgetreten).
