@@ -248,7 +248,7 @@
         {
             "code": 104,
             "icon": "inactive",
-            "caption": "Bitte Postleitzahl konfigurieren"
+            "caption": "Bitte Konfiguration vervollständigen (mind. eine Datenquelle aktivieren, ggf. Postleitzahl eintragen)"
         },
         {
             "code": 201,
@@ -259,11 +259,6 @@
             "code": 202,
             "icon": "error",
             "caption": "Keine aktivierte Quelle erreichbar – siehe Debug"
-        },
-        {
-            "code": 203,
-            "icon": "inactive",
-            "caption": "Bitte mindestens eine Datenquelle aktivieren"
         }
     ]
 }

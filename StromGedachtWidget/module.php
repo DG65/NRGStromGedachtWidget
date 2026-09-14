@@ -25,8 +25,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.7.6';
+    private const MODULE_VERSION = '1.7.7';
     private const NEWS_ITEMS = [
+        'Fix: Der Konsolen-Statustext bei "keine Datenquelle aktiviert" zeigte fälschlich "Bitte Postleitzahl konfigurieren" an (beide Fälle teilen sich seit dem letzten Update denselben Statuscode 104) — jetzt ein gemeinsamer, zutreffender Text für beide Fälle.',
         '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
         'Eine Instanz ohne aktivierte Datenquelle zeigt jetzt korrekt "inaktiv" statt eines Fehlerstatus — wichtig für automatische Systemprüfungen im Verbund.',
         '🔧 Interne Robustheit: eingelesene Formularwerte werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',

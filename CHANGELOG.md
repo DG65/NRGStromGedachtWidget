@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.7.7 (2026-09-14)
+
+- **Fix (form.json):** Beim 9d-Statuscode-Fix in v1.7.5 wurden `STATUS_NO_ZIP` und `STATUS_NO_SOURCE` beide auf 104 gelegt, die Konsolen-Bildunterschrift in `form.json` aber nicht nachgezogen — bei "keine Datenquelle aktiviert" stand dort weiterhin fälschlich "Bitte Postleitzahl konfigurieren" (Text des alten, separaten Codes 203). Jetzt ein gemeinsamer, zutreffender Text für Code 104, toter 203-Eintrag entfernt. Gefunden bei einer angeforderten Durchsicht der Doku-/Hilfe-Texte vor dem Store-Launch.
+
 ## 1.7.6 (2026-09-14)
 
 - **Neues Panel "👋 Wozu dieses Modul?"** ganz oben im Instanzformular (vor dem "Neu in Version"-Panel), in beiden Modulen (StromGedachtWidget + StromGedachtTile). Kurze Erklärung in 2–3 Sätzen, was das Modul liest/tut und welchen Nutzen das stiftet — einmalig ausblendbar (nicht versionsgebunden, da sich der Zweck eines Moduls nicht mit jedem Release ändert). NRG-Stack-Formular-Konvention Punkt 0 (SUITE.md), ausgelöst durch Praxis-Feedback eines Nutzers, der zu Beginn nicht wusste, wofür das Modul gedacht ist. Referenzimplementierung MeterHub.
