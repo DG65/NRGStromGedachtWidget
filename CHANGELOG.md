@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.8.2 (2026-09-21)
+
+- **Wert kommt automatisch: Eingabefeld ersetzen** (NRG-Stack-Formularregel, SUITE.md): In der Kachel wird das Auswahlfeld "Datenquelle" ausgeblendet, sobald die Quelle automatisch erkannt wird (genau eine StromGedachtWidget-Instanz, keine eigene Wahl) - es bleibt die schreibgeschützte Zeile "🔗 Datenquelle: ... (automatisch erkannt)". Bei eigener Wahl (✏️), mehreren oder keiner Instanz bleibt das Feld sichtbar. Der automatische Wert wird nie ins Feld geschrieben (würde beim Übernehmen als eigene Angabe gespeichert). Die Statuszeile folgt außerdem per `onChange` (`SGWTILE_OnChangeSource`) sofort der Auswahl im offenen Formular, noch vor dem Speichern. Im Widget gibt es kein automatisch befülltes Eingabefeld (Postleitzahl und Intervall sind reine Nutzerangaben), dort ist nichts zu ersetzen.
+
 ## 1.8.1 (2026-09-21)
 
 - **Verbindungen im Formular sichtbar** (NRG-Stack-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md): Die Kachel (StromGedachtTile) zeigt statt des statischen Satzes "wird automatisch erkannt" jetzt eine live berechnete Statuszeile zur Datenquelle - ✅ Instanz-ID, Name, automatisch erkannt/manuell gewählt und die aktuell angezeigten Werte je Quelle; ⚠️ bei mehreren Instanzen ohne Auswahl, bei einer nicht mehr vorhandenen gewählten Instanz oder wenn die Quelle noch keine Werte liefert; ℹ️ wenn gar keine Instanz gefunden wurde. Im Widget steht im Automationen-Bereich jetzt immer eine Statuszeile zur EMS-Erkennung (✅ erkannt mit Anzahl gesteuerter Variablen / ℹ️ kein EMS / ⚠️ Abfrage fehlgeschlagen), vorher erschien nur bei einer Kollision eine Warnung. Neue Regressionstests in `tests/smoke.php` prüfen jeden Zustand am ausgelieferten Formular-JSON.

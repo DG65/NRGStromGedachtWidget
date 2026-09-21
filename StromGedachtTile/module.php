@@ -65,8 +65,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.1';
+    private const MODULE_VERSION = '1.8.2';
     private const NEWS_ITEMS = [
+        'Wird die Datenquelle automatisch erkannt (genau eine StromGedachtWidget-Instanz, keine eigene Wahl), ist das Auswahlfeld "Datenquelle" jetzt ausgeblendet und nur die Zeile "🔗 Datenquelle: ..." steht da. Wählst du selbst eine Instanz, bleibt das Feld sichtbar. Die Zeile folgt außerdem sofort deiner Auswahl, noch vor dem Übernehmen.',
         'Das Formular zeigt jetzt, welche Datenquelle erkannt wurde: Instanz, Name, wie sie ermittelt wurde (automatisch/manuell) und welche Werte aktuell angezeigt werden. Bei mehreren Instanzen ohne Auswahl bzw. ohne gefundene Instanz gibt es einen klaren Hinweis statt eines statischen Satzes.',
         'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular sowie ein neuer, dismissibler Forum-Hinweis "💬 Feedback im Symcon-Forum" (vorher gab es hier gar keinen).',
         'Hast du mehrere Kacheln (z. B. für verschiedene StromGedachtWidget-Quellen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Kachel einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
@@ -179,7 +180,14 @@ class StromGedachtTile extends IPSModule
         // Live berechnete Statuszeile zur automatisch erkannten/gewählten Datenquelle
         // (Verbund-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md) -
         // ein statischer Satz "wird automatisch erkannt" sagt nicht, ob es geklappt hat.
-        $this->setElementCaption($form['elements'], 'SourceStatus', $this->sourceStatusLine());
+        $this->setElementProperty($form['elements'], 'SourceStatus', 'caption', $this->sourceStatusLine());
+        // Wert kommt automatisch: Eingabefeld ausblenden statt nur erklären (SUITE.md "Wert kommt
+        // automatisch: Eingabefeld ersetzen"). Nur bei genau einer Instanz und ohne eigene Wahl -
+        // sonst (eigene Wahl, mehrere oder keine Instanz) bleibt das Auswahlfeld sichtbar. Nie den
+        // automatischen Wert ins Feld schreiben (würde beim Übernehmen als eigene Angabe gespeichert).
+        if ($this->sourceIsAutomatic()) {
+            $this->setElementProperty($form['elements'], 'SourceInstance', 'visible', false);
+        }
 
         // Symcon-Forum-Hinweis, dann Lizenz-/Spenden-Hinweis - beide ganz unten,
         // nach den Haupteinstellungen (Formular-Konvention Punkt 4/5, SUITE.md)
@@ -583,18 +591,18 @@ class StromGedachtTile extends IPSModule
         }
     }
 
-    /** Setzt die Beschriftung des benannten Elements, rekursiv über alle items (auch in ExpansionPanels). */
-    private function setElementCaption(array &$elements, string $name, string $caption): bool
+    /** Setzt eine Eigenschaft (caption, visible ...) des benannten Elements, rekursiv über alle items (auch in ExpansionPanels). */
+    private function setElementProperty(array &$elements, string $name, string $key, $value): bool
     {
         foreach ($elements as &$element) {
             if (!is_array($element)) {
                 continue;
             }
             if (($element['name'] ?? '') === $name) {
-                $element['caption'] = $caption;
+                $element[$key] = $value;
                 return true;
             }
-            if (isset($element['items']) && is_array($element['items']) && $this->setElementCaption($element['items'], $name, $caption)) {
+            if (isset($element['items']) && is_array($element['items']) && $this->setElementProperty($element['items'], $name, $key, $value)) {
                 return true;
             }
         }
@@ -602,19 +610,37 @@ class StromGedachtTile extends IPSModule
         return false;
     }
 
-    /**
-     * Statuszeile zur Datenquelle: ✅ verbunden (Instanz, wie ermittelt, angezeigte Werte samt
-     * Quelle), ⚠️ mehrere Instanzen ohne Auswahl bzw. verbunden, aber ohne Werte, ℹ️ keine gefunden.
-     */
-    private function sourceStatusLine(): string
+    /** true, wenn die Quelle allein automatisch erkannt wird (keine eigene Wahl, genau eine Widget-Instanz). */
+    private function sourceIsAutomatic(): bool
     {
-        $configured = (int) $this->ReadPropertyInteger('SourceInstance');
+        return (int) $this->ReadPropertyInteger('SourceInstance') === 0
+            && count(IPS_GetInstanceListByModuleID(self::SOURCE_MODULE)) === 1;
+    }
+
+    /**
+     * Auffrischen der Statuszeile beim Ändern der Auswahl, noch vor dem Speichern (Formular-Regel
+     * "Zeile folgt der Auswahl, nicht dem Speicherstand", SUITE.md).
+     */
+    public function OnChangeSource(int $SourceInstance): void
+    {
+        $this->UpdateFormField('SourceStatus', 'caption', $this->sourceStatusLine($SourceInstance));
+    }
+
+    /**
+     * Statuszeile zur Datenquelle: 🔗 automatisch erkannt bzw. ✏️ eigene Wahl (Instanz, angezeigte
+     * Werte samt Quelle), ⚠️ mehrere Instanzen ohne Auswahl bzw. verbunden, aber ohne Werte,
+     * ℹ️ keine gefunden. $selected = noch ungespeicherte Auswahl aus dem offenen Formular.
+     */
+    private function sourceStatusLine(?int $selected = null): string
+    {
+        $configured = $selected ?? (int) $this->ReadPropertyInteger('SourceInstance');
         $list = array_map('intval', IPS_GetInstanceListByModuleID(self::SOURCE_MODULE));
         $prefix = '';
 
         if ($configured > 0 && IPS_InstanceExists($configured)) {
             $src = $configured;
             $how = 'manuell gewählt';
+            $mark = '✏️';
         } else {
             if ($configured > 0) {
                 $prefix = 'Die gewählte Instanz #' . $configured . ' existiert nicht mehr. ';
@@ -622,6 +648,7 @@ class StromGedachtTile extends IPSModule
             if (count($list) === 1) {
                 $src = $list[0];
                 $how = 'automatisch erkannt';
+                $mark = '🔗';
             } elseif (count($list) > 1) {
                 $names = [];
                 foreach ($list as $id) {
@@ -643,7 +670,7 @@ class StromGedachtTile extends IPSModule
         if (count($values) === 0) {
             return '⚠️ ' . $head . ' Verbunden, liefert aber noch keine Werte - in der Quelle ist keine Datenquelle aktiviert oder es wurde noch nicht abgerufen.';
         }
-        return '✅ ' . $head . ' Aktuell angezeigt: ' . implode(' · ', $values) . '.';
+        return $mark . ' ' . $head . ' Aktuell angezeigt: ' . implode(' · ', $values) . '.';
     }
 
     private function ResolveSource(): int

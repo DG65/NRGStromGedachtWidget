@@ -30,6 +30,7 @@ function IPS_GetKernelRunlevel() { return KR_READY; }
 // Instanz (echtes IP-Symcon generiert PREFIX_Methode($id,...)-Wrapper automatisch, hier von Hand).
 $GLOBALS['__instancesByModule'] = [];
 $GLOBALS['__instancesById'] = [];
+$GLOBALS['__formFieldCalls'] = [];
 function IPS_GetInstanceListByModuleID($guid) { return $GLOBALS['__instancesByModule'][$guid] ?? []; }
 function IPS_InstanceExists($id) { return isset($GLOBALS['__instancesById'][$id]); }
 function SGW_AdoptDismissState($id, $what, $value) { $GLOBALS['__instancesById'][$id]->AdoptDismissState($what, $value); }
@@ -115,7 +116,7 @@ class IPSModule
     }
     public function GetValue($ident) { return $this->values[$ident] ?? null; }
     public function SetStatus($status) { $this->status = $status; }
-    public function UpdateFormField($field, $key, $value) {}
+    public function UpdateFormField($field, $key, $value) { $GLOBALS['__formFieldCalls'][] = [$field, $key, $value]; }
 
     public function SendDebug($caption, $message, $format)
     {
@@ -555,11 +556,21 @@ function findFormElement(array $elements, string $name): ?array
     }
     return null;
 }
-function tileSourceLine(array $props): string
+function tileForm(array $props): array
 {
     $tile = new StromGedachtTile($props);
     $tile->Create();
-    $form = json_decode($tile->GetConfigurationForm(), true);
+    return json_decode($tile->GetConfigurationForm(), true);
+}
+// Sichtbarkeit des Auswahlfelds "Datenquelle" (fehlendes visible = sichtbar)
+function tileSelectVisible(array $props): bool
+{
+    $el = findFormElement(tileForm($props)['elements'], 'SourceInstance');
+    return $el !== null && ($el['visible'] ?? true) !== false;
+}
+function tileSourceLine(array $props): string
+{
+    $form = tileForm($props);
     $el = findFormElement($form['elements'], 'SourceStatus');
     $json = json_encode($form, JSON_UNESCAPED_UNICODE);
     if ($el === null || strpos($json, 'wird automatisch erkannt') !== false || strpos($json, 'Datenquelle wird ermittelt') !== false) {
@@ -584,8 +595,8 @@ $tileBase = ['SourceInstance' => 0, 'AdoptWidgetName' => true, 'ShowAutomations'
 
 $GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
 $line = tileSourceLine($tileBase);
-$ok = strpos($line, 'ℹ️ Keine StromGedachtWidget-Instanz gefunden') === 0;
-printf("%s Kachel-Statuszeile: keine Quelle vorhanden -> ℹ️ (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+$ok = strpos($line, 'ℹ️ Keine StromGedachtWidget-Instanz gefunden') === 0 && tileSelectVisible($tileBase);
+printf("%s Kachel-Statuszeile: keine Quelle vorhanden -> ℹ️, Auswahlfeld sichtbar (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
     $failures++;
 }
@@ -593,11 +604,12 @@ if (!$ok) {
 $tw1 = makeTestWidget('Strom Gedacht Ampel', ['State' => 1, 'GSI' => 20.4, 'ECSignal' => 2, 'ECShare' => 18.7]);
 $GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID];
 $line = tileSourceLine($tileBase);
-$ok = strpos($line, '✅ ') === 0
+$ok = strpos($line, '🔗 ') === 0
+    && !tileSelectVisible($tileBase)
     && strpos($line, '#' . $tw1->InstanceID . ' „Strom Gedacht Ampel“ (automatisch erkannt)') !== false
     && strpos($line, 'StromGedacht: Grün') !== false && strpos($line, 'GrünstromIndex: 20 %') !== false
     && strpos($line, 'Energy-Charts: Grün') !== false;
-printf("%s Kachel-Statuszeile: genau eine Quelle -> ✅ mit Instanz, Name und angezeigten Werten (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+printf("%s Kachel-Statuszeile: genau eine Quelle -> 🔗, Auswahlfeld AUSGEBLENDET, Instanz/Name/Werte in der Zeile (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
     $failures++;
 }
@@ -605,16 +617,17 @@ if (!$ok) {
 $tw2 = makeTestWidget('Zweite Region', ['GSI' => 55.0]);
 $GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID, $tw2->InstanceID];
 $line = tileSourceLine($tileBase);
-$ok = strpos($line, '⚠️ ') === 0 && strpos($line, '2 StromGedachtWidget-Instanzen') !== false
+$ok = strpos($line, '⚠️ ') === 0 && tileSelectVisible($tileBase) && strpos($line, '2 StromGedachtWidget-Instanzen') !== false
     && strpos($line, '#' . $tw1->InstanceID) !== false && strpos($line, '#' . $tw2->InstanceID) !== false;
-printf("%s Kachel-Statuszeile: mehrere Quellen ohne Auswahl -> ⚠️ mit Auswahlhinweis (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+printf("%s Kachel-Statuszeile: mehrere Quellen ohne Auswahl -> ⚠️, Auswahlfeld sichtbar (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
     $failures++;
 }
 
 $line = tileSourceLine(['SourceInstance' => $tw2->InstanceID] + $tileBase);
-$ok = strpos($line, '✅ ') === 0 && strpos($line, '(manuell gewählt)') !== false && strpos($line, 'GrünstromIndex: 55 %') !== false;
-printf("%s Kachel-Statuszeile: mehrere Quellen, eine manuell gewählt -> ✅ manuell gewählt (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+$ok = strpos($line, '✏️ ') === 0 && tileSelectVisible(['SourceInstance' => $tw2->InstanceID] + $tileBase)
+    && strpos($line, '(manuell gewählt)') !== false && strpos($line, 'GrünstromIndex: 55 %') !== false;
+printf("%s Kachel-Statuszeile: mehrere Quellen, eine manuell gewählt -> ✏️, Auswahlfeld sichtbar (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
     $failures++;
 }
@@ -622,6 +635,29 @@ if (!$ok) {
 $line = tileSourceLine(['SourceInstance' => 99999] + $tileBase);
 $ok = strpos($line, '⚠️ Die gewählte Instanz #99999 existiert nicht mehr.') === 0;
 printf("%s Kachel-Statuszeile: gewählte Instanz existiert nicht mehr -> ⚠️ (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+// Eigene Wahl bei genau einer Instanz: Feld bleibt sichtbar (✏️ hat Vorrang, nichts wird ausgeblendet)
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID];
+$ok = tileSelectVisible(['SourceInstance' => $tw1->InstanceID] + $tileBase)
+    && strpos(tileSourceLine(['SourceInstance' => $tw1->InstanceID] + $tileBase), '✏️ ') === 0;
+printf("%s Kachel: eigene Wahl bei genau einer Instanz -> ✏️, Auswahlfeld bleibt sichtbar\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// onChange: Zeile folgt der Auswahl im offenen Formular (noch ungespeichert)
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID, $tw2->InstanceID];
+$GLOBALS['__formFieldCalls'] = [];
+$onChangeTile = new StromGedachtTile($tileBase);
+$onChangeTile->Create();
+$onChangeTile->OnChangeSource($tw2->InstanceID);
+$call = $GLOBALS['__formFieldCalls'][0] ?? null;
+$ok = $call !== null && $call[0] === 'SourceStatus' && $call[1] === 'caption'
+    && strpos($call[2], '✏️ ') === 0 && strpos($call[2], '#' . $tw2->InstanceID) !== false && strpos($call[2], '(manuell gewählt)') !== false;
+printf("%s Kachel: onChange aktualisiert die Statuszeile live auf die gewählte Instanz\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
 }
