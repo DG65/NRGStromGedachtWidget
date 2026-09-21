@@ -180,7 +180,9 @@ class StromGedachtTile extends IPSModule
         // Live berechnete Statuszeile zur automatisch erkannten/gewählten Datenquelle
         // (Verbund-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md) -
         // ein statischer Satz "wird automatisch erkannt" sagt nicht, ob es geklappt hat.
-        $this->setElementProperty($form['elements'], 'SourceStatus', 'caption', $this->sourceStatusLine());
+        $statusLine = $this->sourceStatusLine();
+        $this->setElementProperty($form['elements'], 'SourceStatus', 'caption', $statusLine);
+        $this->setElementProperty($form['elements'], 'SourceStatus', 'color', $this->sourceStatusColor($statusLine));
         // Wert kommt automatisch: Eingabefeld ausblenden statt nur erklären (SUITE.md "Wert kommt
         // automatisch: Eingabefeld ersetzen"). Nur bei genau einer Instanz und ohne eigene Wahl -
         // sonst (eigene Wahl, mehrere oder keine Instanz) bleibt das Auswahlfeld sichtbar. Nie den
@@ -623,7 +625,15 @@ class StromGedachtTile extends IPSModule
      */
     public function OnChangeSource(int $SourceInstance): void
     {
-        $this->UpdateFormField('SourceStatus', 'caption', $this->sourceStatusLine($SourceInstance));
+        $line = $this->sourceStatusLine($SourceInstance);
+        $this->UpdateFormField('SourceStatus', 'caption', $line);
+        $this->UpdateFormField('SourceStatus', 'color', $this->sourceStatusColor($line));
+    }
+
+    /** 🔗-Zeilen (automatisch übernommen) grün (Formular-Regel SUITE.md), alles andere Standardfarbe (-1). */
+    private function sourceStatusColor(string $line): int
+    {
+        return strpos($line, '🔗') === 0 ? 0x2E8B3D : -1;
     }
 
     /**

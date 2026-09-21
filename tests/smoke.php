@@ -568,6 +568,12 @@ function tileSelectVisible(array $props): bool
     $el = findFormElement(tileForm($props)['elements'], 'SourceInstance');
     return $el !== null && ($el['visible'] ?? true) !== false;
 }
+// Farbe der Statuszeile "SourceStatus" im ausgelieferten Formular (fehlend = Standardfarbe)
+function tileStatusColor(array $props): int
+{
+    $el = findFormElement(tileForm($props)['elements'], 'SourceStatus');
+    return (int) ($el['color'] ?? -1);
+}
 function tileSourceLine(array $props): string
 {
     $form = tileForm($props);
@@ -605,6 +611,7 @@ $tw1 = makeTestWidget('Strom Gedacht Ampel', ['State' => 1, 'GSI' => 20.4, 'ECSi
 $GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID];
 $line = tileSourceLine($tileBase);
 $ok = strpos($line, '🔗 ') === 0
+    && tileStatusColor($tileBase) === 0x2E8B3D
     && !tileSelectVisible($tileBase)
     && strpos($line, '#' . $tw1->InstanceID . ' „Strom Gedacht Ampel“ (automatisch erkannt)') !== false
     && strpos($line, 'StromGedacht: Grün') !== false && strpos($line, 'GrünstromIndex: 20 %') !== false
@@ -626,6 +633,7 @@ if (!$ok) {
 
 $line = tileSourceLine(['SourceInstance' => $tw2->InstanceID] + $tileBase);
 $ok = strpos($line, '✏️ ') === 0 && tileSelectVisible(['SourceInstance' => $tw2->InstanceID] + $tileBase)
+    && tileStatusColor(['SourceInstance' => $tw2->InstanceID] + $tileBase) === -1
     && strpos($line, '(manuell gewählt)') !== false && strpos($line, 'GrünstromIndex: 55 %') !== false;
 printf("%s Kachel-Statuszeile: mehrere Quellen, eine manuell gewählt -> ✏️, Auswahlfeld sichtbar (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
@@ -655,9 +663,19 @@ $onChangeTile = new StromGedachtTile($tileBase);
 $onChangeTile->Create();
 $onChangeTile->OnChangeSource($tw2->InstanceID);
 $call = $GLOBALS['__formFieldCalls'][0] ?? null;
+$colorCall = $GLOBALS['__formFieldCalls'][1] ?? null;
 $ok = $call !== null && $call[0] === 'SourceStatus' && $call[1] === 'caption'
-    && strpos($call[2], '✏️ ') === 0 && strpos($call[2], '#' . $tw2->InstanceID) !== false && strpos($call[2], '(manuell gewählt)') !== false;
-printf("%s Kachel: onChange aktualisiert die Statuszeile live auf die gewählte Instanz\n", $ok ? 'PASS' : 'FAIL');
+    && strpos($call[2], '✏️ ') === 0 && strpos($call[2], '#' . $tw2->InstanceID) !== false && strpos($call[2], '(manuell gewählt)') !== false
+    && $colorCall !== null && $colorCall[1] === 'color' && $colorCall[2] === -1;
+// Gegenprobe: leere Auswahl bei genau einer Instanz = automatisch -> Zeile im onChange grün gesetzt
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID];
+$GLOBALS['__formFieldCalls'] = [];
+$onChangeTile->OnChangeSource(0);
+$autoCaption = $GLOBALS['__formFieldCalls'][0][2] ?? '';
+$autoColor = $GLOBALS['__formFieldCalls'][1] ?? null;
+$ok = $ok && strpos($autoCaption, '🔗 ') === 0 && $autoColor !== null && $autoColor[1] === 'color' && $autoColor[2] === 0x2E8B3D;
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID, $tw2->InstanceID];
+printf("%s Kachel: onChange aktualisiert Statuszeile und Farbe live (✏️ Standardfarbe, 🔗 grün)\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
 }
