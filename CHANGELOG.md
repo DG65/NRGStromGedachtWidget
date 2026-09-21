@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.8.1 (2026-09-21)
+
+- **Verbindungen im Formular sichtbar** (NRG-Stack-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md): Die Kachel (StromGedachtTile) zeigt statt des statischen Satzes "wird automatisch erkannt" jetzt eine live berechnete Statuszeile zur Datenquelle - ✅ Instanz-ID, Name, automatisch erkannt/manuell gewählt und die aktuell angezeigten Werte je Quelle; ⚠️ bei mehreren Instanzen ohne Auswahl, bei einer nicht mehr vorhandenen gewählten Instanz oder wenn die Quelle noch keine Werte liefert; ℹ️ wenn gar keine Instanz gefunden wurde. Im Widget steht im Automationen-Bereich jetzt immer eine Statuszeile zur EMS-Erkennung (✅ erkannt mit Anzahl gesteuerter Variablen / ℹ️ kein EMS / ⚠️ Abfrage fehlgeschlagen), vorher erschien nur bei einer Kollision eine Warnung. Neue Regressionstests in `tests/smoke.php` prüfen jeden Zustand am ausgelieferten Formular-JSON.
+
 ## 1.8.0 (2026-09-14)
 
 - **"🧡 Über dieses Modul"-Panel** (Lizenz/Spenden, NRG-Stack-Formular-Konvention Punkt 5) in beiden Modulen ergänzt — verbundweit identischer Wortlaut, ganz unten im Formular, nicht ausblendbar.

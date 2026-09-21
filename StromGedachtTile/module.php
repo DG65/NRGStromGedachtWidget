@@ -65,8 +65,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.0';
+    private const MODULE_VERSION = '1.8.1';
     private const NEWS_ITEMS = [
+        'Das Formular zeigt jetzt, welche Datenquelle erkannt wurde: Instanz, Name, wie sie ermittelt wurde (automatisch/manuell) und welche Werte aktuell angezeigt werden. Bei mehreren Instanzen ohne Auswahl bzw. ohne gefundene Instanz gibt es einen klaren Hinweis statt eines statischen Satzes.',
         'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular sowie ein neuer, dismissibler Forum-Hinweis "💬 Feedback im Symcon-Forum" (vorher gab es hier gar keinen).',
         'Hast du mehrere Kacheln (z. B. für verschiedene StromGedachtWidget-Quellen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Kachel einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
         '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
@@ -174,6 +175,11 @@ class StromGedachtTile extends IPSModule
             }
         }
         unset($element);
+
+        // Live berechnete Statuszeile zur automatisch erkannten/gewählten Datenquelle
+        // (Verbund-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md) -
+        // ein statischer Satz "wird automatisch erkannt" sagt nicht, ob es geklappt hat.
+        $this->setElementCaption($form['elements'], 'SourceStatus', $this->sourceStatusLine());
 
         // Symcon-Forum-Hinweis, dann Lizenz-/Spenden-Hinweis - beide ganz unten,
         // nach den Haupteinstellungen (Formular-Konvention Punkt 4/5, SUITE.md)
@@ -575,6 +581,69 @@ class StromGedachtTile extends IPSModule
             case 'red':         return $this->ColorHex((int) $this->ReadPropertyInteger('ColorRed'), '#d50000');
             default:            return self::COLOR_NODATA;
         }
+    }
+
+    /** Setzt die Beschriftung des benannten Elements, rekursiv über alle items (auch in ExpansionPanels). */
+    private function setElementCaption(array &$elements, string $name, string $caption): bool
+    {
+        foreach ($elements as &$element) {
+            if (!is_array($element)) {
+                continue;
+            }
+            if (($element['name'] ?? '') === $name) {
+                $element['caption'] = $caption;
+                return true;
+            }
+            if (isset($element['items']) && is_array($element['items']) && $this->setElementCaption($element['items'], $name, $caption)) {
+                return true;
+            }
+        }
+        unset($element);
+        return false;
+    }
+
+    /**
+     * Statuszeile zur Datenquelle: ✅ verbunden (Instanz, wie ermittelt, angezeigte Werte samt
+     * Quelle), ⚠️ mehrere Instanzen ohne Auswahl bzw. verbunden, aber ohne Werte, ℹ️ keine gefunden.
+     */
+    private function sourceStatusLine(): string
+    {
+        $configured = (int) $this->ReadPropertyInteger('SourceInstance');
+        $list = array_map('intval', IPS_GetInstanceListByModuleID(self::SOURCE_MODULE));
+        $prefix = '';
+
+        if ($configured > 0 && IPS_InstanceExists($configured)) {
+            $src = $configured;
+            $how = 'manuell gewählt';
+        } else {
+            if ($configured > 0) {
+                $prefix = 'Die gewählte Instanz #' . $configured . ' existiert nicht mehr. ';
+            }
+            if (count($list) === 1) {
+                $src = $list[0];
+                $how = 'automatisch erkannt';
+            } elseif (count($list) > 1) {
+                $names = [];
+                foreach ($list as $id) {
+                    $names[] = '#' . $id . ' „' . IPS_GetName($id) . '“';
+                }
+                return '⚠️ ' . $prefix . count($list) . ' StromGedachtWidget-Instanzen gefunden (' . implode(', ', $names)
+                    . '), aber keine Datenquelle gewählt - bitte unten „Datenquelle“ auswählen. Bis dahin zeigt die Kachel keine Daten.';
+            } else {
+                return 'ℹ️ ' . $prefix . 'Keine StromGedachtWidget-Instanz gefunden - die Kachel zeigt „Keine Datenquelle gefunden“ und die '
+                    . 'Automationen sind nicht verfügbar, bis eine Instanz angelegt oder unten gewählt ist.';
+            }
+        }
+
+        $values = [];
+        foreach ($this->BuildColumns($src) as $col) {
+            $values[] = $col['title'] . ': ' . $col['label'];
+        }
+        $head = $prefix . 'Datenquelle: StromGedachtWidget #' . $src . ' „' . IPS_GetName($src) . '“ (' . $how . ').';
+        if (count($values) === 0) {
+            return '⚠️ ' . $head . ' Verbunden, liefert aber noch keine Werte - in der Quelle ist keine Datenquelle aktiviert oder es wurde noch nicht abgerufen.';
+        }
+        return '✅ ' . $head . ' Aktuell angezeigt: ' . implode(' · ', $values) . '.';
     }
 
     private function ResolveSource(): int

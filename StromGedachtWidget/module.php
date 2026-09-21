@@ -25,8 +25,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.0';
+    private const MODULE_VERSION = '1.8.1';
     private const NEWS_ITEMS = [
+        'Im Bereich "Automationen" steht jetzt immer eine Statuszeile zur EMS-Erkennung (✅ erkannt / ℹ️ kein EMS im System / ⚠️ Abfrage fehlgeschlagen) - vorher war nur eine Kollisionswarnung sichtbar, sonst nichts.',
         'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular. Der Forum-Hinweis ist jetzt ein eigenes, dismissibles Panel "💬 Feedback im Symcon-Forum" statt der alten Zeile.',
         'Hast du mehrere StromGedacht-Instanzen (z. B. verschiedene PLZ/Regionen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Instanz einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
         'Fix: Der Konsolen-Statustext bei "keine Datenquelle aktiviert" zeigte fälschlich "Bitte Postleitzahl konfigurieren" an (beide Fälle teilen sich seit dem letzten Update denselben Statuscode 104) — jetzt ein gemeinsamer, zutreffender Text für beide Fälle.',
@@ -253,7 +254,8 @@ class StromGedachtWidget extends IPSModule
         // Zwei-Regler-Warnhinweis: eine unserer Regel-Zielvariablen wird aktuell auch vom EMS
         // gesteuert ("Ein Regler pro Stellgröße"-Verbundregel). Nur Information, keine
         // Blockade - der Nutzer entscheidet selbst, ob die Regel noch sinnvoll ist.
-        $emsControlled = $this->getEmsControlledVariableIds();
+        $emsInfo = $this->emsConnectionInfo();
+        $emsControlled = $emsInfo['ids'];
         $conflictNames = [];
         $rules = json_decode((string) $this->ReadPropertyString('DataActions'), true);
         if (is_array($rules)) {
@@ -264,31 +266,34 @@ class StromGedachtWidget extends IPSModule
                 }
             }
         }
+        // Statuszeile zur EMS-Erkennung immer (✅/⚠️/ℹ️), die Kollisionswarnung nur bei Treffer
+        $insertLines = [['type' => 'Label', 'caption' => $this->emsStatusLine($emsInfo)]];
         if (count($conflictNames) > 0) {
-            $warningInserted = false;
-            $insertWarning = function (array &$elements) use (&$insertWarning, &$warningInserted, $conflictNames) {
-                foreach ($elements as &$element) {
-                    if ($warningInserted || !is_array($element) || !isset($element['items']) || !is_array($element['items'])) {
-                        continue;
-                    }
-                    foreach ($element['items'] as $idx => $child) {
-                        if (is_array($child) && ($child['name'] ?? '') === 'DataActions') {
-                            array_splice($element['items'], $idx + 1, 0, [[
-                                'type'    => 'Label',
-                                'caption' => '⚠️ Wird auch vom EMS gesteuert (Zwei-Regler-Kollision möglich): ' . implode(', ', $conflictNames)
-                            ]]);
-                            $warningInserted = true;
-                            break;
-                        }
-                    }
-                    if (!$warningInserted) {
-                        $insertWarning($element['items']);
+            $insertLines[] = [
+                'type'    => 'Label',
+                'caption' => '⚠️ Wird auch vom EMS gesteuert (Zwei-Regler-Kollision möglich): ' . implode(', ', $conflictNames)
+            ];
+        }
+        $warningInserted = false;
+        $insertWarning = function (array &$elements) use (&$insertWarning, &$warningInserted, $insertLines) {
+            foreach ($elements as &$element) {
+                if ($warningInserted || !is_array($element) || !isset($element['items']) || !is_array($element['items'])) {
+                    continue;
+                }
+                foreach ($element['items'] as $idx => $child) {
+                    if (is_array($child) && ($child['name'] ?? '') === 'DataActions') {
+                        array_splice($element['items'], $idx + 1, 0, $insertLines);
+                        $warningInserted = true;
+                        break;
                     }
                 }
-                unset($element);
-            };
-            $insertWarning($form['elements']);
-        }
+                if (!$warningInserted) {
+                    $insertWarning($element['items']);
+                }
+            }
+            unset($element);
+        };
+        $insertWarning($form['elements']);
 
         // Symcon-Forum-Hinweis, dann Lizenz-/Spenden-Hinweis - beide ganz unten,
         // nach den Haupteinstellungen (Formular-Konvention Punkt 4/5, SUITE.md)
@@ -1313,14 +1318,23 @@ class StromGedachtWidget extends IPSModule
      */
     private function getEmsControlledVariableIds(): array
     {
+        return $this->emsConnectionInfo()['ids'];
+    }
+
+    /**
+     * Zustand der EMS-Anbindung: ['state' => 'none'|'error'|'ok', 'ids' => [variableID => true]].
+     * 'none' = kein EMS im System, 'error' = EMS da, Abfrage schlug fehl.
+     */
+    private function emsConnectionInfo(): array
+    {
         if (!function_exists('EMS_GetControlledVariables')) {
-            return [];
+            return ['state' => 'none', 'ids' => []];
         }
         try {
             $list = EMS_GetControlledVariables();
         } catch (Throwable $e) {
             $this->SendDebug('EMS-Abgleich', $e->getMessage(), 0);
-            return [];
+            return ['state' => 'error', 'ids' => []];
         }
         $ids = [];
         foreach ((is_array($list) ? $list : []) as $entry) {
@@ -1328,7 +1342,21 @@ class StromGedachtWidget extends IPSModule
                 $ids[(int) $entry['variableID']] = true;
             }
         }
-        return $ids;
+        return ['state' => 'ok', 'ids' => $ids];
+    }
+
+    /** Statuszeile zur automatischen EMS-Erkennung (Verbund-Regel "Verbund-Verbindungen im Formular sichtbar machen", SUITE.md). */
+    private function emsStatusLine(array $info): string
+    {
+        switch ($info['state']) {
+            case 'ok':
+                return '✅ EMS erkannt (EMS_GetControlledVariables): ' . count($info['ids']) . ' vom EMS gesteuerte Variable(n) bekannt - '
+                    . 'deine Regeln werden dagegen abgeglichen, bei Übereinstimmung erscheint eine Warnung.';
+            case 'error':
+                return '⚠️ EMS erkannt, die Abfrage der vom EMS gesteuerten Variablen schlägt aber fehl - die Zwei-Regler-Prüfung ist derzeit nicht möglich (Details im Debug-Fenster).';
+            default:
+                return 'ℹ️ Kein EMS im System gefunden - die Zwei-Regler-Prüfung (Warnung, wenn eine Zielvariable auch vom EMS gesteuert wird) entfällt, alles andere funktioniert unverändert.';
+        }
     }
 
     /** Prüft, ob die Zielvariable einer Regel aktuell auch vom EMS gesteuert wird. */

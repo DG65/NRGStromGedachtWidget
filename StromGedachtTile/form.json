@@ -50,7 +50,12 @@
         },
         {
             "type": "Label",
-            "caption": "Eigenständige Ampel-Kachel für StromGedachtWidget. Die Datenquelle wird automatisch erkannt, wenn es genau eine StromGedachtWidget-Instanz gibt – nur bei mehreren musst du unten manuell wählen."
+            "caption": "Eigenständige Ampel-Kachel für StromGedachtWidget."
+        },
+        {
+            "type": "Label",
+            "name": "SourceStatus",
+            "caption": "Datenquelle wird ermittelt ..."
         },
         {
             "type": "SelectInstance",

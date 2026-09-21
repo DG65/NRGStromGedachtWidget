@@ -31,6 +31,7 @@ function IPS_GetKernelRunlevel() { return KR_READY; }
 $GLOBALS['__instancesByModule'] = [];
 $GLOBALS['__instancesById'] = [];
 function IPS_GetInstanceListByModuleID($guid) { return $GLOBALS['__instancesByModule'][$guid] ?? []; }
+function IPS_InstanceExists($id) { return isset($GLOBALS['__instancesById'][$id]); }
 function SGW_AdoptDismissState($id, $what, $value) { $GLOBALS['__instancesById'][$id]->AdoptDismissState($what, $value); }
 function SGW_GetDismissState($id) { return $GLOBALS['__instancesById'][$id]->GetDismissState(); }
 
@@ -78,6 +79,9 @@ class IPSModule
     public function ReadPropertyBoolean($name) { return (bool) $this->properties[$name]; }
     public function ReadPropertyInteger($name) { return (int) $this->properties[$name]; }
     public function ReadPropertyString($name) { return (string) $this->properties[$name]; }
+    public function RegisterPropertyFloat($name, $default) { $this->properties[$name] ??= $default; }
+    public function ReadPropertyFloat($name) { return (float) $this->properties[$name]; }
+    public function SetVisualizationType($type) {}
     public function RegisterAttributeBoolean($name, $default) { $this->attributes[$name] ??= $default; }
     public function RegisterAttributeString($name, $default) { $this->attributes[$name] ??= $default; }
     public function RegisterAttributeInteger($name, $default) { $this->attributes[$name] ??= $default; }
@@ -122,6 +126,7 @@ class IPSModule
 }
 
 require __DIR__ . '/../StromGedachtWidget/module.php';
+require __DIR__ . '/../StromGedachtTile/module.php';
 
 // [Properties, erwarteter Status, erwartete Variablen, verbotene Variablen]
 $cases = [
@@ -441,7 +446,8 @@ function makeModuleWithRule(int $target): StromGedachtWidget
 $mNoEms = makeModuleWithRule(9001);
 $actionsNoEms = json_decode($mNoEms->GetDataActions(), true);
 $formNoEms = json_encode(json_decode($mNoEms->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
-$ok = ($actionsNoEms[0]['emsConflict'] ?? true) === false && strpos($formNoEms, 'Kollision möglich)') === false;
+$ok = ($actionsNoEms[0]['emsConflict'] ?? true) === false && strpos($formNoEms, 'Kollision möglich)') === false
+    && strpos($formNoEms, 'ℹ️ Kein EMS im System gefunden') !== false;
 printf("%s EMS-Konfliktcheck: kein EMS im System -> kein Konflikt, keine Warnung\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
@@ -463,7 +469,9 @@ $actionsConflict = json_decode($mConflict->GetDataActions(), true);
 $formConflict = json_encode(json_decode($mConflict->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
 $ok = ($actionsConflict[0]['emsConflict'] ?? false) === true
     && strpos($formConflict, 'Kollision möglich)') !== false
-    && strpos($formConflict, 'Wallbox') !== false;
+    && strpos($formConflict, 'Wallbox') !== false
+    && strpos($formConflict, '✅ EMS erkannt') !== false
+    && strpos($formConflict, 'Kein EMS im System gefunden') === false;
 printf("%s EMS-Konfliktcheck: EMS steuert dieselbe Zielvariable -> Konflikt + Warnung mit Name\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
@@ -471,7 +479,10 @@ if (!$ok) {
 
 $mNoConflict = makeModuleWithRule(9002);
 $actionsNoConflict = json_decode($mNoConflict->GetDataActions(), true);
-$ok = ($actionsNoConflict[0]['emsConflict'] ?? true) === false;
+$formNoConflict = json_encode(json_decode($mNoConflict->GetConfigurationForm(), true), JSON_UNESCAPED_UNICODE);
+$ok = ($actionsNoConflict[0]['emsConflict'] ?? true) === false
+    && strpos($formNoConflict, '✅ EMS erkannt') !== false
+    && strpos($formNoConflict, 'Kollision möglich)') === false;
 printf("%s EMS-Konfliktcheck: EMS steuert andere Variable -> kein Fehlalarm\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
@@ -517,6 +528,109 @@ $ok = $sibC->ReadAttributeBoolean('PurposeIntroGone') === true
     && $sibC->ReadAttributeBoolean('ForumHintGone') === true
     && $sibC->ReadAttributeString('SeenNews') === $moduleVersion;
 printf("%s Ausblenden-Teilen: neu hinzugekommene Instanz C übernimmt beim ersten ApplyChanges() den Stand vorhandener Geschwister-Instanzen\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// Kachel: live berechnete Statuszeile zur Datenquelle (SUITE.md "Verbund-Verbindungen im Formular
+// sichtbar machen"). Geprüft wird das ausgelieferte Formular-JSON (rekursiv gesucht, nicht nur
+// oberste Ebene) für jeden Zustand: ℹ️ keine Quelle, ✅ eine Quelle automatisch erkannt,
+// ⚠️ mehrere ohne Auswahl, ⚠️ verbunden ohne Werte, ✅ manuell gewählt, plus Hinweis auf
+// nicht mehr vorhandene gewählte Instanz. Der frühere statische Satz darf nie mehr erscheinen.
+function findFormElement(array $elements, string $name): ?array
+{
+    foreach ($elements as $el) {
+        if (!is_array($el)) {
+            continue;
+        }
+        if (($el['name'] ?? '') === $name) {
+            return $el;
+        }
+        if (isset($el['items']) && is_array($el['items'])) {
+            $hit = findFormElement($el['items'], $name);
+            if ($hit !== null) {
+                return $hit;
+            }
+        }
+    }
+    return null;
+}
+function tileSourceLine(array $props): string
+{
+    $tile = new StromGedachtTile($props);
+    $tile->Create();
+    $form = json_decode($tile->GetConfigurationForm(), true);
+    $el = findFormElement($form['elements'], 'SourceStatus');
+    $json = json_encode($form, JSON_UNESCAPED_UNICODE);
+    if ($el === null || strpos($json, 'wird automatisch erkannt') !== false || strpos($json, 'Datenquelle wird ermittelt') !== false) {
+        return '!! Statuszeile fehlt oder statischer Ersatztext noch im Formular';
+    }
+    return (string) $el['caption'];
+}
+function makeTestWidget(string $name, array $idents): StromGedachtWidget
+{
+    $w = new StromGedachtWidget(['UpdateInterval' => 300]);
+    $GLOBALS['__testVariables'][$w->InstanceID] = ['name' => $name, 'path' => $name];
+    foreach ($idents as $ident => $value) {
+        $vid = 700000 + $w->InstanceID * 10 + count($GLOBALS['__objTree'][$w->InstanceID] ?? []);
+        $GLOBALS['__objTree'][$w->InstanceID][$ident] = $vid;
+        $GLOBALS['__values'][$vid] = $value;
+    }
+    return $w;
+}
+$tileBase = ['SourceInstance' => 0, 'AdoptWidgetName' => true, 'ShowAutomations' => true, 'FontScale' => 1.0,
+    'ColorBackground' => -1, 'ColorBox' => -1, 'ColorText' => -1, 'ColorTextMuted' => -1, 'FontFamily' => 'system',
+    'ColorSuperGreen' => 0, 'ColorGreen' => 0, 'ColorYellow' => 0, 'ColorOrange' => 0, 'ColorRed' => 0];
+
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
+$line = tileSourceLine($tileBase);
+$ok = strpos($line, 'ℹ️ Keine StromGedachtWidget-Instanz gefunden') === 0;
+printf("%s Kachel-Statuszeile: keine Quelle vorhanden -> ℹ️ (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+$tw1 = makeTestWidget('Strom Gedacht Ampel', ['State' => 1, 'GSI' => 20.4, 'ECSignal' => 2, 'ECShare' => 18.7]);
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID];
+$line = tileSourceLine($tileBase);
+$ok = strpos($line, '✅ ') === 0
+    && strpos($line, '#' . $tw1->InstanceID . ' „Strom Gedacht Ampel“ (automatisch erkannt)') !== false
+    && strpos($line, 'StromGedacht: Grün') !== false && strpos($line, 'GrünstromIndex: 20 %') !== false
+    && strpos($line, 'Energy-Charts: Grün') !== false;
+printf("%s Kachel-Statuszeile: genau eine Quelle -> ✅ mit Instanz, Name und angezeigten Werten (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+$tw2 = makeTestWidget('Zweite Region', ['GSI' => 55.0]);
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw1->InstanceID, $tw2->InstanceID];
+$line = tileSourceLine($tileBase);
+$ok = strpos($line, '⚠️ ') === 0 && strpos($line, '2 StromGedachtWidget-Instanzen') !== false
+    && strpos($line, '#' . $tw1->InstanceID) !== false && strpos($line, '#' . $tw2->InstanceID) !== false;
+printf("%s Kachel-Statuszeile: mehrere Quellen ohne Auswahl -> ⚠️ mit Auswahlhinweis (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+$line = tileSourceLine(['SourceInstance' => $tw2->InstanceID] + $tileBase);
+$ok = strpos($line, '✅ ') === 0 && strpos($line, '(manuell gewählt)') !== false && strpos($line, 'GrünstromIndex: 55 %') !== false;
+printf("%s Kachel-Statuszeile: mehrere Quellen, eine manuell gewählt -> ✅ manuell gewählt (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+$line = tileSourceLine(['SourceInstance' => 99999] + $tileBase);
+$ok = strpos($line, '⚠️ Die gewählte Instanz #99999 existiert nicht mehr.') === 0;
+printf("%s Kachel-Statuszeile: gewählte Instanz existiert nicht mehr -> ⚠️ (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
+if (!$ok) {
+    $failures++;
+}
+
+$tw3 = makeTestWidget('Ohne Werte', []);
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw3->InstanceID];
+$line = tileSourceLine($tileBase);
+$ok = strpos($line, '⚠️ ') === 0 && strpos($line, 'liefert aber noch keine Werte') !== false;
+printf("%s Kachel-Statuszeile: Quelle gefunden, aber ohne Werte -> ⚠️ (%s)\n", $ok ? 'PASS' : 'FAIL', $line);
 if (!$ok) {
     $failures++;
 }

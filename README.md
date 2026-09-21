@@ -1,7 +1,7 @@
 # StromGedachtWidget
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.8.1-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml)
@@ -95,7 +95,7 @@ Die quellenspezifischen Variablen existieren nur, solange die jeweilige Quelle a
 
 Für eine native, grafisch einstellbare Darstellung im WebFront gibt es das eigenständige Modul **StromGedachtTile**. Es ist bewusst von der Datenlogik getrennt (eigene Instanz, liest die Werte einer StromGedachtWidget-Instanz über deren Objektbaum) — ein Problem in der Kachel kann die Datenabfrage nicht beeinträchtigen.
 
-- Bei genau einer StromGedachtWidget-Instanz wird sie automatisch als Quelle erkannt; bei mehreren lässt sie sich manuell wählen.
+- Bei genau einer StromGedachtWidget-Instanz wird sie automatisch als Quelle erkannt; bei mehreren lässt sie sich manuell wählen. Eine Statuszeile im Formular zeigt, welche Instanz erkannt wurde und welche Werte aktuell angezeigt werden.
 - Ampelfarben (Supergrün/Grün/Gelb/Orange/Rot), Flächen-/Textfarben und Schrift sind frei einstellbar; ohne eigene Angabe folgt die Kachel dem hellen/dunklen Design des Endgeräts. Ein Tap auf 🔄 aktualisiert die Quelle sofort.
 - Die Kachel kann die Automationen der Quelle vollständig anzeigen und verwalten (siehe unten).
 
@@ -103,17 +103,16 @@ Für eine native, grafisch einstellbare Darstellung im WebFront gibt es das eige
 
 Im Instanzformular von StromGedacht Widget lassen sich Regeln über die Ampel-/Signal-Werte anlegen, die beim Eintreten der Bedingung eine beliebige schaltbare Variable im System schalten — z. B. „Wenn StromGedacht-Ampel = Rot, dann Wallbox ausschalten". Als Wenn-Datenpunkt stehen die Werte der jeweils aktivierten Quellen zur Verfügung (StromGedacht-Ampel, GrünstromIndex, Energy-Charts-Signal, Energy-Charts EE-Anteil); mehrere Bedingungen werden mit UND verknüpft. Regeln feuern flankengesteuert — beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. Die Kachel StromGedachtTile kann dieselben Regeln anzeigen, anlegen, bearbeiten, löschen und ein-/ausschalten.
 
-Ist im System ein EMS-Modul des NRG-Stack installiert, prüft das Modul zusätzlich, ob die Zielvariable einer Regel bereits vom EMS gesteuert wird ("Ein Regler pro Stellgröße") — im Formular als Hinweistext, in der Kachel als ⚠️-Symbol vor der Regel. Reine Information, blockiert nichts; ohne EMS im System ändert sich nichts.
+Ist im System ein EMS-Modul des NRG-Stack installiert, prüft das Modul zusätzlich, ob die Zielvariable einer Regel bereits vom EMS gesteuert wird ("Ein Regler pro Stellgröße") — im Formular als Hinweistext, in der Kachel als ⚠️-Symbol vor der Regel. Eine Statuszeile im Automationen-Bereich zeigt immer an, ob ein EMS erkannt wurde. Reine Information, blockiert nichts; ohne EMS im System ändert sich nichts.
 
 ## Instanz-Status
 
 | Code | Bedeutung |
 |------|-----------|
 | 102 | Aktiv — mindestens eine aktivierte Quelle liefert Daten |
-| 104 | Postleitzahl fehlt (bei StromGedacht und GrünstromIndex erforderlich) |
+| 104 | Inaktiv (bewusst, kein Fehler) — noch keine Datenquelle aktiviert oder Postleitzahl fehlt (bei StromGedacht und GrünstromIndex erforderlich) |
 | 201 | Für die konfigurierte Postleitzahl liegen bei keiner aktivierten Quelle Daten vor |
 | 202 | Keine aktivierte Quelle erreichbar (Details im Debug-Fenster) |
-| 203 | Keine Datenquelle aktiviert |
 
 Fällt nur ein Teil der Quellen aus, bleibt die Instanz aktiv — der Ausfall ist in der betroffenen Widget-Spalte („Keine Daten", graue LED) und im Debug-Fenster sichtbar.
 
