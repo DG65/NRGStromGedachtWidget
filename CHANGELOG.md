@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.8.3 (2026-10-23)
+
+- **Fix `library.json`:** Das Feld `date` stand als JJJJMMTT (z. B. 20260921) in der Datei, der Store erwartet aber eine Unix-Zeit in Sekunden und zeigte deshalb „23.8.1970" als Veröffentlichungsdatum (Versionen 1.4.0 und 1.8.0). Jetzt der Unix-Zeitstempel des Veröffentlichungstags (`date +%s`), wie bei den anderen NRG-Stack-Modulen. Bei künftigen Releases immer so setzen. Gefunden im Store von EMS/Dietmar.
+
 ## 1.8.2 (2026-09-21)
 
 - **Wert kommt automatisch: Eingabefeld ersetzen** (NRG-Stack-Formularregel, SUITE.md): In der Kachel wird das Auswahlfeld "Datenquelle" ausgeblendet, sobald die Quelle automatisch erkannt wird (genau eine StromGedachtWidget-Instanz, keine eigene Wahl) - es bleibt die schreibgeschützte Zeile "🔗 Datenquelle: ... (automatisch erkannt)". Bei eigener Wahl (✏️), mehreren oder keiner Instanz bleibt das Feld sichtbar. Der automatische Wert wird nie ins Feld geschrieben (würde beim Übernehmen als eigene Angabe gespeichert). Die Statuszeile folgt außerdem per `onChange` (`SGWTILE_OnChangeSource`) sofort der Auswahl im offenen Formular, noch vor dem Speichern. Automatisch übernommene Zeilen (🔗) werden grün dargestellt (Label-`color` 0x2E8B3D, bei jedem anderen Zustand Standardfarbe, auch im `onChange`). Im Widget gibt es kein automatisch befülltes Eingabefeld (Postleitzahl und Intervall sind reine Nutzerangaben), dort ist nichts zu ersetzen.
