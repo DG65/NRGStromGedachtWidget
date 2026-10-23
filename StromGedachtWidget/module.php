@@ -116,6 +116,13 @@ class StromGedachtWidget extends IPSModule
         $this->RegisterPropertyBoolean('EnableEnergyCharts', true);
         $this->RegisterPropertyString('ZipCode', '');
         $this->RegisterPropertyInteger('UpdateInterval', 300);
+        // Hinweis an den Store-Review ("Konfiguration auch über die Visualisierung: Attribute statt
+        // Eigenschaften?"): Bewusst eine Eigenschaft. Die Regelliste soll auch im klassischen
+        // Instanzformular bearbeitbar sein (Liste mit Hinzufügen/Löschen/Bearbeiten, nur an
+        // Eigenschaften gebunden); bei einem Attribut wäre sie dort nur lesbar und Nutzer ohne
+        // Kachel könnten keine Regeln pflegen. Die Kachel ändert die Eigenschaft nur auf
+        // ausdrücklichen Nutzerbefehl (Regel speichern/löschen/umschalten), nie selbständig.
+        // Eine Umstellung bräuchte zudem eine Übernahme der Regeln bestehender Instanzen.
         $this->RegisterPropertyString('DataActions', '[]');
 
         $this->RegisterAttributeString('RuleState', '{}');
