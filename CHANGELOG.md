@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.8.5 (2026-10-23)
+
+- **Lizenz-Link:** Der Button "Lizenztext ansehen" im Panel "Über dieses Modul" zeigt jetzt auf die `LICENSE` im Zweig `main` (vorher `ems-integration`, weil `main` bis zum Nachziehen am 23.10.2026 noch die alte MIT-Lizenz trug). Beide Zweige tragen jetzt dieselbe PolyForm-Lizenz.
+
 ## 1.8.4 (2026-10-23)
 
 - **Fix flackernder Abruf ("State fehlt"):** Die Vorschaltschicht der StromGedacht-API (Azure) antwortete bei etwa jedem sechsten Abruf mit `Content-Encoding: br` (Brotli), obwohl keine Kompression angefordert war. PHP-Streams entpacken das nicht, der Body begann mit Binärbytes (`0b 05 80 … 03` um das JSON), `json_decode` scheiterte und die Ampel blieb bis zum nächsten Timer-Lauf leer. Gefunden über den Smoke-Test (jeder zweite bis dritte Lauf rot, `curl` dagegen immer grün, weil curl mit HTTP/2 und ohne dieses Verhalten antwortete). Jetzt fordert das Modul ausdrücklich `Accept-Encoding: identity` an (0 von 40 auffälligen Antworten gegenüber ca. 4 von 25 vorher), entpackt trotzdem gelieferte gzip/deflate-Antworten und meldet nicht entpackbare Kodierungen als Fehler, sodass der vorhandene Wiederholungsversuch greift. Gilt für alle drei Datenquellen (gemeinsamer Abrufweg). Dazu: Zugriff auf die Antwort-Header über `http_get_last_response_headers()` (PHP 8.4+), da `$http_response_header` ab PHP 8.5 veraltet ist. Neue Regressionstests gegen einen lokalen Testserver (`tests/encoding-router.php`).

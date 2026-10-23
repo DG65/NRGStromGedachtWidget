@@ -20,7 +20,7 @@ class StromGedachtTile extends IPSModule
     // Ausblenden-Teilen (Cross-Instanz, siehe PropagateDismiss()).
     private const GUID_TILE = '{E9B65213-BA33-426D-8486-D350A7DFCFEF}';
     private const FORUM_THREAD_URL = 'https://community.symcon.de/t/modul-strom-gedacht-ampel-widget/143960';
-    private const LICENSE_URL = 'https://github.com/DG65/NRGStromGedachtWidget/blob/ems-integration/LICENSE';
+    private const LICENSE_URL = 'https://github.com/DG65/NRGStromGedachtWidget/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
     private const WATCH_IDENTS = ['State', 'Text', 'GSI', 'ECSignal', 'ECShare', 'Updated'];
