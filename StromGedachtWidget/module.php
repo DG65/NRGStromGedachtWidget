@@ -25,8 +25,9 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.1';
+    private const MODULE_VERSION = '1.8.4';
     private const NEWS_ITEMS = [
+        'Zuverlässigerer Abruf: Die StromGedacht-API antwortete gelegentlich (ca. jeder sechste Abruf) in einem Format, das nicht gelesen werden konnte - die Ampel blieb dann bis zum nächsten Abruf leer. Das Modul fordert die Antwort jetzt ausdrücklich unkomprimiert an.',
         'Im Bereich "Automationen" steht jetzt immer eine Statuszeile zur EMS-Erkennung (✅ erkannt / ℹ️ kein EMS im System / ⚠️ Abfrage fehlgeschlagen) - vorher war nur eine Kollisionswarnung sichtbar, sonst nichts.',
         'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular. Der Forum-Hinweis ist jetzt ein eigenes, dismissibles Panel "💬 Feedback im Symcon-Forum" statt der alten Zeile.',
         'Hast du mehrere StromGedacht-Instanzen (z. B. verschiedene PLZ/Regionen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Instanz einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
@@ -958,7 +959,11 @@ class StromGedachtWidget extends IPSModule
         $options = [
             'http' => [
                 'method'        => 'GET',
-                'header'        => "User-Agent: Symcon-StromGedacht\r\nAccept: application/json\r\n",
+                // Ausdrücklich unkomprimiert anfordern: Die Vorschaltschicht der StromGedacht-API
+                // (Azure) lieferte bei ca. jedem sechsten Abruf trotz fehlendem Accept-Encoding
+                // eine Brotli-Antwort (Content-Encoding: br), die PHP-Streams nicht entpacken -
+                // der Body begann dann mit Binärbytes, json_decode scheiterte, der Stand blieb leer.
+                'header'        => "User-Agent: Symcon-StromGedacht\r\nAccept: application/json\r\nAccept-Encoding: identity\r\n",
                 'timeout'       => 10,
                 'ignore_errors' => true
             ]
@@ -970,14 +975,46 @@ class StromGedachtWidget extends IPSModule
 
         $body = @file_get_contents($url, false, stream_context_create($options));
 
+        // PHP 8.4+: http_get_last_response_headers(); $http_response_header ist ab 8.5 veraltet
+        // (dynamischer Zugriff vermeidet die Veraltet-Meldung zur Compile-Zeit, gilt für ältere PHP-Versionen unverändert)
+        $headers = function_exists('http_get_last_response_headers')
+            ? (http_get_last_response_headers() ?? [])
+            : (${'http_response_header'} ?? []);
+
         $code = 0;
-        foreach ($http_response_header ?? [] as $header) {
+        $encoding = '';
+        foreach ($headers as $header) {
             if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $match)) {
                 $code = (int) $match[1];
+            } elseif (preg_match('#^Content-Encoding:\s*(\S+)#i', $header, $match)) {
+                $encoding = strtolower($match[1]);
             }
         }
 
-        return [$code, $body === false ? null : $body];
+        if ($body === false) {
+            return [$code, null];
+        }
+
+        // Trotz "identity" komprimierte Antwort: gzip/deflate entpacken, alles andere (z. B. br)
+        // als Fehler melden, damit der Aufrufer den vorhandenen Wiederholungsversuch nutzt.
+        if ($encoding !== '' && $encoding !== 'identity') {
+            $decoded = false;
+            if ($encoding === 'gzip' && function_exists('gzdecode')) {
+                $decoded = @gzdecode($body);
+            } elseif ($encoding === 'deflate' && function_exists('gzuncompress')) {
+                $decoded = @gzuncompress($body);
+                if ($decoded === false && function_exists('gzinflate')) {
+                    $decoded = @gzinflate($body);
+                }
+            }
+            if ($decoded === false) {
+                $this->SendDebug('API', 'Antwort mit nicht entpackbarem Content-Encoding "' . $encoding . '" verworfen: ' . $url, 0);
+                return [$code, null];
+            }
+            $body = $decoded;
+        }
+
+        return [$code, $body];
     }
 
     private function DecodeJson(int $code, ?string $body): ?array

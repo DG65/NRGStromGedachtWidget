@@ -689,4 +689,65 @@ if (!$ok) {
     $failures++;
 }
 
+// HTTP-Antwortkodierung (Befund 23.10.2026): Die StromGedacht-API antwortete bei ca. jedem sechsten
+// Abruf mit Content-Encoding: br, obwohl keine Kompression angefordert war; PHP-Streams entpacken
+// das nicht, der Body begann mit Binärbytes und der Stand blieb leer ("State fehlt"). Geprüft
+// gegen einen lokalen Testserver (php -S), unabhängig von der echten API.
+$port = 18000 + (getmypid() % 1000);
+$serverProc = proc_open(
+    [PHP_BINARY, '-S', '127.0.0.1:' . $port, __DIR__ . '/encoding-router.php'],
+    [0 => ['pipe', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+    $serverPipes
+);
+$serverUp = false;
+for ($i = 0; $i < 50 && $serverProc !== false; $i++) {
+    $sock = @fsockopen('127.0.0.1', $port, $errno, $errstr, 0.2);
+    if ($sock) {
+        fclose($sock);
+        $serverUp = true;
+        break;
+    }
+    usleep(100000);
+}
+if (!$serverUp) {
+    printf("FAIL HTTP-Antwortkodierung: Testserver nicht gestartet\n");
+    $failures++;
+} else {
+    $httpModule = new StromGedachtWidget(['UpdateInterval' => 300]);
+    $tryGet = new ReflectionMethod($httpModule, 'TryHttpGet');
+    $base = 'http://127.0.0.1:' . $port;
+
+    [$code, $body] = $tryGet->invoke($httpModule, $base . '/echo-encoding', false);
+    $ok = $code === 200 && (json_decode((string) $body, true)['acceptEncoding'] ?? null) === 'identity';
+    printf("%s HTTP: Anfrage fordert ausdrücklich Accept-Encoding: identity an\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
+
+    [$code, $body] = $tryGet->invoke($httpModule, $base . '/plain', false);
+    $ok = $code === 200 && json_decode((string) $body, true) === ['state' => 1];
+    printf("%s HTTP: unkomprimierte Antwort wird unverändert geliefert\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
+
+    [$code, $body] = $tryGet->invoke($httpModule, $base . '/gzip', false);
+    $ok = $code === 200 && json_decode((string) $body, true) === ['state' => 1];
+    printf("%s HTTP: trotzdem gelieferte gzip-Antwort wird entpackt\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
+
+    [$code, $body] = $tryGet->invoke($httpModule, $base . '/br', false);
+    $ok = $code === 200 && $body === null;
+    printf("%s HTTP: nicht entpackbare Brotli-Antwort wird als Fehler (null) gemeldet statt als Binärmüll durchgereicht\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
+}
+if ($serverProc !== false) {
+    proc_terminate($serverProc);
+    proc_close($serverProc);
+}
+
 exit($failures === 0 ? 0 : 1);
