@@ -117,12 +117,16 @@ class StromGedachtWidget extends IPSModule
         $this->RegisterPropertyString('ZipCode', '');
         $this->RegisterPropertyInteger('UpdateInterval', 300);
         // Hinweis an den Store-Review ("Konfiguration auch über die Visualisierung: Attribute statt
-        // Eigenschaften?"): Bewusst eine Eigenschaft. Die Regelliste soll auch im klassischen
-        // Instanzformular bearbeitbar sein (Liste mit Hinzufügen/Löschen/Bearbeiten, nur an
-        // Eigenschaften gebunden); bei einem Attribut wäre sie dort nur lesbar und Nutzer ohne
-        // Kachel könnten keine Regeln pflegen. Die Kachel ändert die Eigenschaft nur auf
-        // ausdrücklichen Nutzerbefehl (Regel speichern/löschen/umschalten), nie selbständig.
-        // Eine Umstellung bräuchte zudem eine Übernahme der Regeln bestehender Instanzen.
+        // Eigenschaften?"): Bewusst eine Eigenschaft, aus drei Gründen.
+        // 1. Bearbeitbarkeit im Instanzformular: Die Regeln sind eine Liste mit Hinzufügen/Löschen/
+        //    Bearbeiten, und diese Listenelemente lassen sich im Konfigurationsformular nur an
+        //    Eigenschaften binden. Als Attribut wäre sie dort nur lesbar, Nutzer ohne Kachel
+        //    könnten keine Regeln mehr pflegen.
+        // 2. Keine Eingriffe des Moduls: Die Eigenschaft wird nie von selbst geändert, sondern nur
+        //    auf ausdrücklichen Nutzerbefehl in der Kachel (Regel speichern/löschen/umschalten).
+        //    Was das Modul selbst führt (Schaltzustand der Regeln), liegt in einem Attribut (RuleState).
+        // 3. Bestandsnutzer: Eine Umstellung bräuchte eine Übernahme der Regeln bestehender
+        //    Instanzen; das Risiko, Nutzerregeln zu verlieren, steht in keinem Verhältnis zum Gewinn.
         $this->RegisterPropertyString('DataActions', '[]');
 
         $this->RegisterAttributeString('RuleState', '{}');
