@@ -94,14 +94,15 @@ einer Linie statt kreuz und quer. Details siehe SUITE.md.
 
 ## Zweige
 
-- `ems-integration` — **aktueller Arbeitszweig, ab 25.07.2026 (Verschärfung Dietmar) AUSNAHMSLOS
-  für alle Pushes**, solange die EMS-Integrationsphase läuft — keine Ausnahme mehr für
-  vermeintlich sichere Fixes auf `beta`. Verbundweiter Zweig (identischer Name in allen
-  Modul-Repos), ursprünglich von `beta` abgezweigt. Gilt bis Dietmar explizit etwas anderes sagt.
-- `beta` — Entwicklung und schnelle Auslieferung an Dietmar und seinen Testerkreis. **Während der
-  Integrationsphase NICHT direkt bepushen** (siehe oben) — wird später von `ems-integration`
-  nachgezogen, sobald sich der Stand bewährt hat.
-- `main` — geprüfter, stabiler Stand (Standardzweig). Nur bewusst dorthin veröffentlichen.
+- `main` — Stable-Stand, wird im Symcon-Store ausgeliefert (Standardzweig). Seit 27.10.2026
+  (Dietmar: alle Store-Betas auf Stable umgestellt) gilt `main` == `beta`; Veröffentlichung
+  per Fast-Forward von `beta` nach `main`.
+- `beta` — Arbeitszweig für Entwicklung. Erst prüfen (Tests, Migrationsvergleich, Store-Checkliste),
+  dann `beta` nach `main` bringen. Stable wird jetzt wirklich an Nutzer ausgeliefert.
+- `ems-integration` — **entfällt** (verbundweit seit 27.10.2026, vorher gemeinsamer Arbeitszweig
+  der EMS-Integrationsphase). Steht bis auf Weiteres auf demselben Stand wie `main`/`beta`, weil
+  eine Symcon-Installation ihn noch verfolgen kann; gelöscht wird er erst, wenn Dietmar die
+  Modulverwaltung umgestellt hat. Nicht mehr als Arbeitszweig verwenden.
 
 ### Vor jedem beta→main-Wechsel: Neuinstallations-Simulation
 
@@ -151,15 +152,14 @@ dafür einen Fallback).
 
 ## Prüfen vor jedem Push auf `beta`/`main` (Migrationsvergleich, SUITE.md 9e, 13.09.2026)
 
-Zusätzlich zu den Checks oben, **vor jedem Push auf `beta` (bzw. `main`, sobald von dort
-veröffentlicht wird)** — nicht bei jedem `ems-integration`-Push, da dort noch nichts an
-Bestandsnutzer geht:
+Zusätzlich zu den Checks oben, **vor jedem Push auf `beta` und vor
+jedem Nachziehen von `main`** (Stable geht an Bestandsnutzer):
 
 ```bash
-php /Users/dietmar/Nextcloud/Claude/.tools/migrationsvergleich.php . origin/beta HEAD
+php /Users/dietmar/Nextcloud/Claude/.tools/migrationsvergleich.php . origin/main HEAD
 ```
 
-Vergleicht den zu pushenden Stand gegen `origin/beta` und meldet BRUCH (Modul/GUID entfernt,
+Vergleicht den zu pushenden Stand gegen `origin/main` (den ausgelieferten Stand) und meldet BRUCH (Modul/GUID entfernt,
 Präfix geändert, Property/Ident entfernt oder Typ geändert, öffentliche Funktion entfernt/
 Parameterzahl geändert, Vertrags-Major-Sprung), WARNUNG oder HINWEIS. **Rückgabecode 1 = erst
 mit Dietmar klären, nicht ungeprüft pushen** — Ziel ist, dass kein Push bei Bestandsnutzern
