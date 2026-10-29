@@ -23,6 +23,12 @@ class StromGedachtTile extends IPSModule
     private const LICENSE_URL = 'https://github.com/DG65/NRGStromGedachtWidget/blob/main/LICENSE';
     private const PAYPAL_URL = 'https://paypal.me/DietmarGureth';
 
+    // Wählbare Fachpanels für "Formular: Aufbau" (SUITE.md 3a): stabiler Schlüssel => Element-Name
+    // in form.json, in Standardreihenfolge. Die Schlüssel werden in der Eigenschaft FormLayout
+    // gespeichert und dürfen sich nie ändern (die Beschriftungen schon).
+    private const LAYOUT_PANELS_BY_KEY = ['colors' => 'PanelColors', 'surface' => 'PanelSurface', 'font' => 'PanelFont'];
+    private const LAYOUT_PANELS = ['PanelColors' => 'colors', 'PanelSurface' => 'surface', 'PanelFont' => 'font'];
+
     private const WATCH_IDENTS = ['State', 'Text', 'GSI', 'ECSignal', 'ECShare', 'Updated'];
 
     private const COLOR_NODATA = '#9e9e9e';
@@ -65,8 +71,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.2';
+    private const MODULE_VERSION = '1.9.0';
     private const NEWS_ITEMS = [
+        '🪟 Neu: Formular-Aufbau selbst wählen. Im neuen, eingeklappten Panel "Formular: Aufbau" legst du für Ampelfarben, Flächen & Text und Schrift fest, ob sie beim Öffnen aufgeklappt, zugeklappt oder ausgeblendet sind und in welcher Reihenfolge sie stehen. Ausgeblendete Bereiche arbeiten weiter, ihre Einstellungen bleiben erhalten. Kein Haken = wie bisher.',
         'Wird die Datenquelle automatisch erkannt (genau eine StromGedachtWidget-Instanz, keine eigene Wahl), ist das Auswahlfeld "Datenquelle" jetzt ausgeblendet und nur die Zeile "🔗 Datenquelle: ..." steht da. Wählst du selbst eine Instanz, bleibt das Feld sichtbar. Die Zeile folgt außerdem sofort deiner Auswahl, noch vor dem Übernehmen.',
         'Das Formular zeigt jetzt, welche Datenquelle erkannt wurde: Instanz, Name, wie sie ermittelt wurde (automatisch/manuell) und welche Werte aktuell angezeigt werden. Bei mehreren Instanzen ohne Auswahl bzw. ohne gefundene Instanz gibt es einen klaren Hinweis statt eines statischen Satzes.',
         'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular sowie ein neuer, dismissibler Forum-Hinweis "💬 Feedback im Symcon-Forum" (vorher gab es hier gar keinen).',
@@ -101,6 +108,7 @@ class StromGedachtTile extends IPSModule
         $this->RegisterPropertyString('FontFamily', self::DEF_FONT);
         $this->RegisterPropertyFloat('FontScale', self::DEF_SCALE);
         $this->RegisterPropertyBoolean('ShowAutomations', true);
+        $this->RegisterPropertyString('FormLayout', '[]');
 
         $this->SetVisualizationType(1);
     }
@@ -190,6 +198,41 @@ class StromGedachtTile extends IPSModule
         if ($this->sourceIsAutomatic()) {
             $this->setElementProperty($form['elements'], 'SourceInstance', 'visible', false);
         }
+
+        // Fachpanels (Farben, Flächen & Text, Schrift) nach der Einstellung "Formular: Aufbau"
+        // anordnen, aufklappen/zuklappen oder ausblenden (Formular-Konvention Punkt 3a, SUITE.md).
+        // Sie werden an der Stelle des ersten Fachpanels wieder eingesetzt; die losen Felder
+        // davor und danach (Datenquelle, "Automationen anzeigen", Reset-Knopf) bleiben stehen.
+        $free = [];
+        $firstIndex = null;
+        foreach ($form['elements'] as $i => $element) {
+            $key = is_array($element) ? (self::LAYOUT_PANELS[$element['name'] ?? ''] ?? null) : null;
+            if ($key !== null) {
+                $free[$key] = $element;
+                $firstIndex ??= $i;
+                unset($form['elements'][$i]);
+            }
+        }
+        $form['elements'] = array_values($form['elements']);
+        $layout = $this->formLayout(array_keys(self::LAYOUT_PANELS_BY_KEY));
+        $sorted = [];
+        foreach ($layout as $key => $l) {
+            if (!isset($free[$key])) {
+                continue;
+            }
+            $panel = $free[$key];
+            if ($l['open'] === 'open') {
+                $panel['expanded'] = true;
+            } elseif ($l['open'] === 'closed') {
+                $panel['expanded'] = false;
+            } elseif ($l['open'] === 'hidden') {
+                // Nicht weglassen: die Felder bleiben im Formular, gespeicherte Werte bleiben beim "Übernehmen" erhalten
+                $panel['visible'] = false;
+            }
+            $sorted[] = $panel;
+        }
+        array_splice($form['elements'], $firstIndex ?? count($form['elements']), 0, $sorted);
+        $form['elements'][] = $this->LayoutPanel($layout, $free);
 
         // Symcon-Forum-Hinweis, dann Lizenz-/Spenden-Hinweis - beide ganz unten,
         // nach den Haupteinstellungen (Formular-Konvention Punkt 4/5, SUITE.md)
@@ -283,6 +326,98 @@ class StromGedachtTile extends IPSModule
         $this->WriteAttributeBoolean('ForumHintGone', true);
         $this->UpdateFormField('ForumHintPanel', 'visible', false);
         $this->PropagateDismiss('ForumHint');
+    }
+
+    /**
+     * Reihenfolge und Aufklapp-Zustand der Fachpanels aus der Eigenschaft FormLayout.
+     * Unbekannte oder fehlende Einträge fallen auf Standardreihenfolge und "Standard" zurück.
+     *
+     * @param string[] $keys Schlüssel der Fachpanels in Standardreihenfolge
+     * @return array key => ['open' => 'std'|'open'|'closed'|'hidden', 'pos' => int, 'idx' => int], in der anzuwendenden Reihenfolge
+     */
+    private function formLayout(array $keys): array
+    {
+        $saved = json_decode((string) $this->ReadPropertyString('FormLayout'), true);
+        $by = [];
+        foreach (is_array($saved) ? $saved : [] as $row) {
+            if (is_array($row) && isset($row['Key'])) {
+                $by[(string) $row['Key']] = $row;
+            }
+        }
+        $out = [];
+        foreach ($keys as $i => $k) {
+            $r = $by[$k] ?? [];
+            // Kontrollkästchen; Vorrang bei Widerspruch: ausgeblendet vor zugeklappt vor aufgeklappt, keines = Standard
+            $open = !empty($r['Hidden']) ? 'hidden' : (!empty($r['Closed']) ? 'closed' : (!empty($r['Opened']) ? 'open' : 'std'));
+            $out[$k] = [
+                'open' => $open,
+                'pos'  => isset($r['Pos']) ? max(1, min(99, (int) $r['Pos'])) : $i + 1,
+                'idx'  => $i
+            ];
+        }
+        uasort($out, function ($a, $b) {
+            return [$a['pos'], $a['idx']] <=> [$b['pos'], $b['idx']];
+        });
+        return $out;
+    }
+
+    /** Wählbarer Aufbau des Formulars: je Fachpanel Aufklapp-Zustand beim Öffnen und Position (SUITE.md 3a). */
+    private function LayoutPanel(array $layout, array $free): array
+    {
+        $rows = [];
+        $hidden = [];
+        foreach ($layout as $key => $l) {
+            $name = trim((string) preg_replace('/\s*\(.*$/u', '', (string) ($free[$key]['caption'] ?? $key)));
+            $rows[] = ['Key' => $key, 'Panel' => $name, 'Opened' => $l['open'] === 'open', 'Closed' => $l['open'] === 'closed',
+                'Hidden' => $l['open'] === 'hidden', 'Pos' => $l['pos']];
+            if ($l['open'] === 'hidden') {
+                $hidden[] = trim((string) preg_replace('/^[^\p{L}\p{N}]+/u', '', $name));
+            }
+        }
+        $hiddenLine = $hidden
+            ? [['type' => 'Label', 'caption' => '🙈 Ausgeblendet: ' . implode(', ', $hidden) . ' - zum Wiederzeigen den Haken bei „Ausgeblendet“ entfernen. Ausgeblendete Bereiche arbeiten weiter, nur die Anzeige fehlt.']]
+            : [];
+        return [
+            'type' => 'ExpansionPanel', 'name' => 'LayoutPanel', 'expanded' => false,
+            'caption' => '🪟  Formular: Aufbau' . ($hidden ? ' (' . count($hidden) . ' ausgeblendet)' : ''),
+            'items' => array_merge($hiddenLine, [
+                ['type' => 'Label', 'caption' => 'Hier legst du fest, welche Bereiche beim Öffnen des Formulars aufgeklappt sind und in welcher Reihenfolge sie stehen. Symcon merkt sich das Auf- und Zuklappen nicht selbst, deshalb gilt die Einstellung hier jedes Mal beim Öffnen. Sie wirkt nach „Übernehmen“ beim nächsten Öffnen des Formulars.'],
+                ['type' => 'Label', 'caption' => 'Kein Haken heißt „Standard“: wie das Modul es vorsieht (hier: zugeklappt). Die Position ist eine Zahl; bei gleicher Zahl bleibt die Standardreihenfolge. „Ausgeblendet“ nimmt einen Bereich aus der Anzeige, ohne dass er etwas verliert: seine Einstellungen bleiben erhalten und wirken weiter. Zum Wiederzeigen den Haken bei „Ausgeblendet“ entfernen oder „Auf Standard zurücksetzen“ klicken. Sind mehrere Haken gesetzt, gilt „Ausgeblendet“ vor „Zugeklappt“ vor „Aufgeklappt“. Die Bereiche oben (Zweck, Neu, Dokumentation) und unten (Rückmeldungen, Über dieses Modul) bleiben, wo sie sind, und lassen sich nicht ausblenden.'],
+                [
+                    'type' => 'List', 'name' => 'FormLayout', 'caption' => 'Bereiche', 'rowCount' => count($rows), 'add' => false, 'delete' => false,
+                    'loadValuesFromConfiguration' => false,
+                    'values' => $rows,
+                    'columns' => [
+                        ['caption' => 'Bereich', 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
+                        ['caption' => 'Schlüssel', 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
+                        ['caption' => 'Aufgeklappt', 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Zugeklappt', 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => '🙈 Ausgeblendet', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Position', 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]]
+                    ]
+                ],
+                ['type' => 'Button', 'caption' => '↩️ Auf Standard zurücksetzen', 'onClick' => 'echo SGWTILE_ResetFormLayout($id);']
+            ])
+        ];
+    }
+
+    /** Setzt Aufklapp-Zustand und Reihenfolge der Fachpanels im offenen Formular auf den Standard (gilt nach "Übernehmen"). */
+    public function ResetFormLayout(): string
+    {
+        $form = json_decode((string) file_get_contents(__DIR__ . '/form.json'), true);
+        $captions = [];
+        foreach (is_array($form) ? ($form['elements'] ?? []) : [] as $element) {
+            if (is_array($element) && isset(self::LAYOUT_PANELS[$element['name'] ?? ''])) {
+                $captions[self::LAYOUT_PANELS[$element['name']]] = (string) ($element['caption'] ?? '');
+            }
+        }
+        $rows = [];
+        $pos = 1;
+        foreach (array_keys(self::LAYOUT_PANELS_BY_KEY) as $key) {
+            $rows[] = ['Key' => $key, 'Panel' => $captions[$key] ?? $key, 'Opened' => false, 'Closed' => false, 'Hidden' => false, 'Pos' => $pos++];
+        }
+        $this->UpdateFormField('FormLayout', 'values', json_encode($rows, JSON_UNESCAPED_UNICODE));
+        return 'ℹ️ Auf Standard gesetzt. Zum Speichern unten „Übernehmen“ klicken.';
     }
 
     /**

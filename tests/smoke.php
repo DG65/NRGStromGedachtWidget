@@ -689,6 +689,144 @@ if (!$ok) {
     $failures++;
 }
 
+// "🪟 Formular: Aufbau" (SUITE.md 3a) in der Kachel: Reihenfolge, Aufklapp-Zustand, visible:false statt
+// Weglassen, Rückfall bei unbekanntem/fehlendem Schlüssel, Lage des Aufbau-Panels, Reset-Knopf.
+function tileLayoutRows(array $overrides): string
+{
+    return json_encode($overrides, JSON_UNESCAPED_UNICODE);
+}
+function tileTopPanels(array $props): array
+{
+    $out = [];
+    foreach (tileForm($props)['elements'] as $el) {
+        if (is_array($el) && ($el['type'] ?? '') === 'ExpansionPanel') {
+            $out[] = $el;
+        }
+    }
+    return $out;
+}
+function panelNames(array $panels): array
+{
+    return array_map(function ($p) {
+        return $p['name'] ?? ('#' . preg_replace('/\s+/u', '', $p['caption']));
+    }, $panels);
+}
+
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
+// 1) Standard: Reihenfolge Farben, Flächen, Schrift; keines ausgeblendet; kein erzwungener Aufklapp-Zustand
+$panels = tileTopPanels($tileBase);
+$names = panelNames($panels);
+$fach = array_values(array_filter($panels, function ($p) { return in_array($p['name'] ?? '', ['PanelColors', 'PanelSurface', 'PanelFont'], true); }));
+$ok = array_column($fach, 'name') === ['PanelColors', 'PanelSurface', 'PanelFont']
+    && !array_filter($fach, function ($p) { return array_key_exists('visible', $p) || array_key_exists('expanded', $p); });
+printf("%s Formular-Aufbau: Standard = Reihenfolge Farben/Flächen/Schrift, nichts ausgeblendet, Aufklapp-Zustand unverändert\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 2) Lage: feste Panels oben (Wozu, Neu, Doku), Fachpanels, Aufbau, Forum, Über dieses Modul unten
+$names = array_column($panels, 'name');
+$posOf = function (string $n) use ($names) { $i = array_search($n, $names, true); return $i === false ? -1 : $i; };
+$captions = array_map(function ($p) { return $p['caption']; }, $panels);
+$ok = $posOf('PurposeIntroPanel') < $posOf('NewsPanel') && $posOf('NewsPanel') < $posOf('DocPanel')
+    && $posOf('DocPanel') < $posOf('PanelColors') && $posOf('PanelFont') < $posOf('LayoutPanel')
+    && $posOf('LayoutPanel') < $posOf('ForumHintPanel')
+    && strpos((string) end($captions), 'Über dieses Modul') !== false
+    && strpos((string) $panels[$posOf('LayoutPanel')]['caption'], 'Formular: Aufbau') !== false
+    && ($panels[$posOf('LayoutPanel')]['expanded'] ?? null) === false;
+printf("%s Formular-Aufbau: Panel liegt nach den Fachpanels, vor dem Forum-Hinweis, eingeklappt; feste Panels oben/unten bleiben\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 3) Reihenfolge ändern: Schrift an Position 1, Farben 2, Flächen 3
+$p = ['FormLayout' => tileLayoutRows([
+    ['Key' => 'font', 'Pos' => 1], ['Key' => 'colors', 'Pos' => 2], ['Key' => 'surface', 'Pos' => 3],
+])] + $tileBase;
+$fach = array_values(array_filter(tileTopPanels($p), function ($x) { return in_array($x['name'] ?? '', ['PanelColors', 'PanelSurface', 'PanelFont'], true); }));
+$ok = array_column($fach, 'name') === ['PanelFont', 'PanelColors', 'PanelSurface'];
+printf("%s Formular-Aufbau: Position bestimmt die Reihenfolge der Fachpanels\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 4) Aufgeklappt / Zugeklappt / Ausgeblendet; Widerspruch: ausgeblendet vor zugeklappt vor aufgeklappt
+$p = ['FormLayout' => tileLayoutRows([
+    ['Key' => 'colors', 'Opened' => true, 'Pos' => 1],
+    ['Key' => 'surface', 'Opened' => true, 'Closed' => true, 'Pos' => 2],
+    ['Key' => 'font', 'Opened' => true, 'Closed' => true, 'Hidden' => true, 'Pos' => 3],
+])] + $tileBase;
+$by = [];
+foreach (tileTopPanels($p) as $x) {
+    $by[$x['name'] ?? ''] = $x;
+}
+$ok = ($by['PanelColors']['expanded'] ?? null) === true
+    && ($by['PanelSurface']['expanded'] ?? null) === false
+    && ($by['PanelFont']['visible'] ?? null) === false
+    && isset($by['PanelFont']['items']) && count($by['PanelFont']['items']) > 0
+    && strpos($by['LayoutPanel']['caption'], '(1 ausgeblendet)') !== false;
+printf("%s Formular-Aufbau: Aufgeklappt/Zugeklappt, Ausgeblendet = visible:false MIT Inhalt, Vorrang bei Widerspruch, Zähler in der Caption\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 5) Rückfall: unbekannter Schlüssel ignoriert, fehlender (neues Fachpanel) = Standard und Standardposition,
+//    kaputtes JSON = Standard
+$p = ['FormLayout' => tileLayoutRows([['Key' => 'gibt-es-nicht', 'Hidden' => true, 'Pos' => 1], ['Key' => 'font', 'Pos' => 1]])] + $tileBase;
+$fach = array_values(array_filter(tileTopPanels($p), function ($x) { return in_array($x['name'] ?? '', ['PanelColors', 'PanelSurface', 'PanelFont'], true); }));
+// Farben: kein Eintrag -> Standardposition 1; Schrift: Pos 1 (Gleichstand, stabil über Ursprungsindex danach); Flächen: Standardposition 2
+$ok = array_column($fach, 'name') === ['PanelColors', 'PanelFont', 'PanelSurface']
+    && !array_filter($fach, function ($x) { return array_key_exists('visible', $x); });
+$broken = array_column(array_values(array_filter(tileTopPanels(['FormLayout' => '{kaputt'] + $tileBase), function ($x) { return in_array($x['name'] ?? '', ['PanelColors', 'PanelSurface', 'PanelFont'], true); })), 'name');
+$ok = $ok && $broken === ['PanelColors', 'PanelSurface', 'PanelFont'];
+printf("%s Formular-Aufbau: unbekannter Schlüssel ignoriert, fehlender/kaputter Eintrag fällt auf Standard zurück\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 6) Reset-Knopf: Klartext zurück, Liste per UpdateFormField auf Standard, keine Selbstpersistenz
+$GLOBALS['__formFieldCalls'] = [];
+$resetTile = new StromGedachtTile($tileBase);
+$resetTile->Create();
+$text = $resetTile->ResetFormLayout();
+$call = $GLOBALS['__formFieldCalls'][0] ?? null;
+$rows = $call ? json_decode($call[2], true) : [];
+$ok = strpos($text, 'Übernehmen') !== false && $call !== null && $call[0] === 'FormLayout' && $call[1] === 'values'
+    && array_column($rows, 'Key') === ['colors', 'surface', 'font'] && array_column($rows, 'Pos') === [1, 2, 3]
+    && !array_filter($rows, function ($r) { return $r['Opened'] || $r['Closed'] || $r['Hidden']; })
+    && count($GLOBALS['__formFieldCalls']) === 1;
+printf("%s Formular-Aufbau: Reset setzt die Liste per UpdateFormField auf Standard und meldet Klartext\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
+// 7) Die Liste im Aufbau-Panel: Schlüsselspalte unsichtbar mit save:true, Property FormLayout, Standardwert '[]'
+$layoutPanel = null;
+foreach (tileTopPanels($tileBase) as $x) {
+    if (($x['name'] ?? '') === 'LayoutPanel') {
+        $layoutPanel = $x;
+    }
+}
+$list = null;
+foreach ($layoutPanel['items'] ?? [] as $it) {
+    if (($it['name'] ?? '') === 'FormLayout') {
+        $list = $it;
+    }
+}
+$keyCol = null;
+foreach ($list['columns'] ?? [] as $c) {
+    if (($c['name'] ?? '') === 'Key') {
+        $keyCol = $c;
+    }
+}
+$ok = $list !== null && ($list['loadValuesFromConfiguration'] ?? true) === false && count($list['values']) === 3
+    && $keyCol !== null && ($keyCol['save'] ?? false) === true && ($keyCol['visible'] ?? true) === false
+    && (function () use ($tileBase) { $t = new StromGedachtTile($tileBase); $t->Create(); return $t->ReadPropertyString('FormLayout'); })() === '[]';
+printf("%s Formular-Aufbau: Liste mit unsichtbarem, gespeichertem Schlüssel, Werte direkt im Formular\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) {
+    $failures++;
+}
+
 // HTTP-Antwortkodierung (Befund 23.10.2026): Die StromGedacht-API antwortete bei ca. jedem sechsten
 // Abruf mit Content-Encoding: br, obwohl keine Kompression angefordert war; PHP-Streams entpacken
 // das nicht, der Body begann mit Binärbytes und der Stand blieb leer ("State fehlt"). Geprüft

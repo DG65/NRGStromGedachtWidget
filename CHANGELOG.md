@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.9.0 (2026-10-29)
+
+- **"🪟 Formular: Aufbau" in der Kachel** (NRG-Stack-Formular-Konvention 3a, SUITE.md): Neues, eingeklapptes Panel nach den Fachpanels und vor dem Forum-Hinweis. Je Fachpanel (🎨 Ampelfarben, 🖌️ Flächen & Text, 🔤 Schrift) wählst du "Aufgeklappt", "Zugeklappt" oder "🙈 Ausgeblendet" und eine Position 1-99. Kein Haken = Standard (wie bisher, zugeklappt). Bei Widerspruch gilt ausgeblendet vor zugeklappt vor aufgeklappt. "Ausgeblendet" setzt `visible: false`, die Felder bleiben im Formular und behalten ihre Werte. Gespeichert in der neuen Eigenschaft `FormLayout` (additiv, Bestandskacheln zeigen unverändert den Standard); Schlüssel je Panel bleiben stabil, unbekannte oder fehlende Einträge fallen auf Standard zurück. Knopf "↩️ Auf Standard zurücksetzen" (`SGWTILE_ResetFormLayout()`) setzt nur das offene Formular zurück. Das Widget hat nur ein Fachpanel und ist von der Konvention ausgenommen. Neue Prüfstand-Fälle: Reihenfolge, Aufklapp-Zustand, `visible: false` mit Inhalt, Rückfall, Reset, Lage im Formular.
+
 ## 1.8.5 (2026-10-23)
 
 - **Lizenz-Link:** Der Button "Lizenztext ansehen" im Panel "Über dieses Modul" zeigt jetzt auf die `LICENSE` im Zweig `main` (vorher `ems-integration`, weil `main` bis zum Nachziehen am 23.10.2026 noch die alte MIT-Lizenz trug). Beide Zweige tragen jetzt dieselbe PolyForm-Lizenz.
