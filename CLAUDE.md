@@ -99,10 +99,8 @@ einer Linie statt kreuz und quer. Details siehe SUITE.md.
   per Fast-Forward von `beta` nach `main`.
 - `beta` — Arbeitszweig für Entwicklung. Erst prüfen (Tests, Migrationsvergleich, Store-Checkliste),
   dann `beta` nach `main` bringen. Stable wird jetzt wirklich an Nutzer ausgeliefert.
-- `ems-integration` — **entfällt** (verbundweit seit 27.10.2026, vorher gemeinsamer Arbeitszweig
-  der EMS-Integrationsphase). Steht bis auf Weiteres auf demselben Stand wie `main`/`beta`, weil
-  eine Symcon-Installation ihn noch verfolgen kann; gelöscht wird er erst, wenn Dietmar die
-  Modulverwaltung umgestellt hat. Nicht mehr als Arbeitszweig verwenden.
+- `ems-integration` — **gelöscht am 30.10.2026** (Dietmar). Früherer gemeinsamer Arbeitszweig der
+  EMS-Integrationsphase; er enthielt zuletzt keine Commits, die nicht auch auf `beta`/`main` lagen.
 
 ### Vor jedem beta→main-Wechsel: Neuinstallations-Simulation
 
