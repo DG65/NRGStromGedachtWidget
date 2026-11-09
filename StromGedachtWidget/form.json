@@ -3,92 +3,92 @@
         {
             "type": "ExpansionPanel",
             "name": "DocPanel",
-            "caption": "📖 Dokumentation & Hilfe",
+            "caption": "📖 Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "── Funktionsweise ──"
+                    "caption": "── How it works ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Diese Instanz fragt bis zu drei unabhängige Datenquellen ab und stellt für jede aktivierte Quelle eine eigene Ampel-Variable bereit: StromGedacht (Netz-Signal, benötigt PLZ, deckt NUR Baden-Württemberg sowie einzelne Pilotgebiete ab), GrünstromIndex (Öko-Signal, benötigt PLZ, bundesweit) und Energy-Charts (Öko-Signal, bundesweit, keine PLZ nötig). Alle aktivierten Quellen laufen parallel; solange mindestens eine liefert, bleibt die Instanz aktiv. Außerhalb des StromGedacht-Gebiets einfach nur GrünstromIndex und/oder Energy-Charts aktivieren."
+                    "caption": "This instance queries up to three independent data sources and provides its own traffic-light variable for each enabled source: StromGedacht (grid signal, requires a postal code, covers ONLY Baden-Württemberg and a few pilot areas), GrünstromIndex (eco signal, requires a postal code, nationwide) and Energy-Charts (eco signal, nationwide, no postal code needed). All enabled sources run in parallel; as long as at least one delivers, the instance stays active. Outside the StromGedacht area simply enable only GrünstromIndex and/or Energy-Charts."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Darstellung ──"
+                    "caption": "── Display ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Variable 'Anzeige' enthält ein fertiges HTML-Ampel-Widget, das sich manuell in ein WebFront legen lässt. Für eine grafisch einstellbare, native Kachel gibt es zusätzlich das eigenständige Modul 'StromGedachtTile' – einfach eine neue Instanz davon anlegen und als Quelle diese Instanz wählen (bei nur einer StromGedachtWidget-Instanz geschieht das automatisch)."
+                    "caption": "The variable 'Display' contains a ready-made HTML traffic-light widget that can be placed in a WebFront manually. For a graphically configurable, native tile there is also the separate module 'StromGedachtTile' – simply create a new instance of it and choose this instance as the source (with only one StromGedachtWidget instance this happens automatically)."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Automationen ──"
+                    "caption": "── Automations ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Im Bereich 'Automationen (Wenn → Dann)' unten lassen sich Regeln über die Ampel-/Signal-Werte dieser Instanz anlegen, die eine beliebige schaltbare Variable im System schalten – z. B. 'Wenn StromGedacht-Ampel = Rot, dann Wallbox ausschalten'. Regeln feuern flankengesteuert (beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut). Die Kachel 'StromGedachtTile' kann dieselben Regeln anzeigen, anlegen, bearbeiten und ein-/ausschalten."
+                    "caption": "In the 'Automations (If → Then)' section below you can create rules based on the traffic-light/signal values of this instance that switch any switchable variable in the system – e.g. 'If StromGedacht traffic light = Red, then switch off wallbox'. Rules are edge-triggered (they fire when the condition becomes true, not again on every data update). The 'StromGedachtTile' tile can show, create, edit and enable/disable the same rules."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Weitere Hilfe ──"
+                    "caption": "── More help ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Ausführliche Dokumentation: github.com/DG65/NRGStromGedachtWidget."
+                    "caption": "Detailed documentation: github.com/DG65/NRGStromGedachtWidget."
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Button '🔄 Übernehmen erzwingen' ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst – praktisch nach einem Modul-Update, falls die Instanz den neuen Code nicht von selbst übernimmt."
+                    "caption": "The '🔄 Force apply' button calls IPS_ApplyChanges() directly, without you having to change anything in the form first – handy after a module update if the instance does not pick up the new code on its own."
                 }
             ]
         },
         {
             "type": "CheckBox",
             "name": "EnableStromGedacht",
-            "caption": "StromGedacht (TransnetBW, Netz-Signal, PLZ erforderlich, NUR Baden-Württemberg + Pilotgebiete)"
+            "caption": "StromGedacht (TransnetBW, grid signal, postal code required, ONLY Baden-Württemberg + pilot areas)"
         },
         {
             "type": "CheckBox",
             "name": "EnableGSI",
-            "caption": "GrünstromIndex (Corrently, Öko-Signal, PLZ erforderlich)"
+            "caption": "GrünstromIndex (Corrently, eco signal, postal code required)"
         },
         {
             "type": "CheckBox",
             "name": "EnableEnergyCharts",
-            "caption": "Energy-Charts Stromampel (Fraunhofer ISE, Öko-Signal, ganz Deutschland)"
+            "caption": "Energy-Charts traffic light (Fraunhofer ISE, eco signal, all of Germany)"
         },
         {
             "type": "ValidationTextBox",
             "name": "ZipCode",
-            "caption": "Postleitzahl (für StromGedacht und GrünstromIndex)"
+            "caption": "Postal code (for StromGedacht and GrünstromIndex)"
         },
         {
             "type": "NumberSpinner",
             "name": "UpdateInterval",
-            "caption": "Aktualisierungsintervall",
-            "suffix": " Sekunden",
+            "caption": "Update interval",
+            "suffix": " seconds",
             "minimum": 60
         },
         {
             "type": "ExpansionPanel",
-            "caption": "Automationen (Wenn → Dann)",
+            "caption": "Automations (If → Then)",
             "items": [
                 {
                     "type": "Label",
-                    "caption": "Regeln über die Ampel-/Signal-Werte dieser Instanz: sobald die Bedingung erfüllt wird, schaltet das Modul die Zielvariable. Flankengesteuert – eine Regel feuert beim Eintreten der Bedingung, nicht bei jeder Datenmeldung erneut. In 'Wenn Datenpunkt' erscheinen automatisch nur die Werte der oben aktivierten Quellen – eine deaktivierte Quelle (z. B. GrünstromIndex ohne Häkchen) taucht dort nicht als Auswahl auf. Die Kachel 'StromGedachtTile' kann Regeln anzeigen, verwalten und ein-/ausschalten."
+                    "caption": "Rules based on the traffic-light/signal values of this instance: as soon as the condition is met, the module switches the target variable. Edge-triggered – a rule fires when the condition becomes true, not again on every data update. 'If data point' automatically lists only the values of the sources enabled above – a disabled source (e.g. GrünstromIndex without a checkmark) does not appear there. The 'StromGedachtTile' tile can show, manage and enable/disable rules."
                 },
                 {
                     "type": "List",
                     "name": "DataActions",
-                    "caption": "Regeln",
+                    "caption": "Rules",
                     "rowCount": 6,
                     "add": true,
                     "delete": true,
                     "columns": [
                         {
-                            "caption": "Aktiv",
+                            "caption": "Active",
                             "name": "Active",
                             "width": "70px",
                             "add": true,
@@ -97,7 +97,7 @@
                             }
                         },
                         {
-                            "caption": "Wenn Datenpunkt",
+                            "caption": "If data point",
                             "name": "Source",
                             "width": "220px",
                             "add": "",
@@ -107,7 +107,7 @@
                             }
                         },
                         {
-                            "caption": "Bedingung",
+                            "caption": "Condition",
                             "name": "Op",
                             "width": "140px",
                             "add": "true",
@@ -115,46 +115,46 @@
                                 "type": "Select",
                                 "options": [
                                     {
-                                        "caption": "wird EIN (true)",
+                                        "caption": "turns ON (true)",
                                         "value": "true"
                                     },
                                     {
-                                        "caption": "wird AUS (false)",
+                                        "caption": "turns OFF (false)",
                                         "value": "false"
                                     },
                                     {
-                                        "caption": "= (gleich)",
+                                        "caption": "= (equal)",
                                         "value": "eq"
                                     },
                                     {
-                                        "caption": "≠ (ungleich)",
+                                        "caption": "≠ (not equal)",
                                         "value": "ne"
                                     },
                                     {
-                                        "caption": "> (größer)",
+                                        "caption": "> (greater)",
                                         "value": "gt"
                                     },
                                     {
-                                        "caption": "≥ (größer gleich)",
+                                        "caption": "≥ (greater or equal)",
                                         "value": "ge"
                                     },
                                     {
-                                        "caption": "< (kleiner)",
+                                        "caption": "< (less)",
                                         "value": "lt"
                                     },
                                     {
-                                        "caption": "≤ (kleiner gleich)",
+                                        "caption": "≤ (less or equal)",
                                         "value": "le"
                                     },
                                     {
-                                        "caption": "ändert sich",
+                                        "caption": "changes",
                                         "value": "change"
                                     }
                                 ]
                             }
                         },
                         {
-                            "caption": "Vergleichswert",
+                            "caption": "Compare value",
                             "name": "Compare",
                             "width": "115px",
                             "add": "",
@@ -163,7 +163,7 @@
                             }
                         },
                         {
-                            "caption": "Dann Zielvariable",
+                            "caption": "Then target variable",
                             "name": "Target",
                             "width": "auto",
                             "add": 0,
@@ -172,7 +172,7 @@
                             }
                         },
                         {
-                            "caption": "Aktion",
+                            "caption": "Action",
                             "name": "Action",
                             "width": "140px",
                             "add": "on",
@@ -180,26 +180,26 @@
                                 "type": "Select",
                                 "options": [
                                     {
-                                        "caption": "Einschalten",
+                                        "caption": "Switch on",
                                         "value": "on"
                                     },
                                     {
-                                        "caption": "Ausschalten",
+                                        "caption": "Switch off",
                                         "value": "off"
                                     },
                                     {
-                                        "caption": "Umschalten",
+                                        "caption": "Toggle",
                                         "value": "toggle"
                                     },
                                     {
-                                        "caption": "Wert setzen",
+                                        "caption": "Set value",
                                         "value": "value"
                                     }
                                 ]
                             }
                         },
                         {
-                            "caption": "Wert",
+                            "caption": "Value",
                             "name": "Value",
                             "width": "100px",
                             "add": "",
@@ -211,23 +211,23 @@
                 },
                 {
                     "type": "Label",
-                    "caption": "'Vergleichswert' nur bei =, ≠, >, ≥, <, ≤ nötig; 'Wert' nur bei Aktion 'Wert setzen'. Zahlen mit Punkt oder Komma. Die Zielvariable wird per Aktion geschaltet (wie ein Klick in der Visualisierung); Variablen ohne Aktion werden direkt beschrieben."
+                    "caption": "'Compare value' is only needed for =, ≠, >, ≥, <, ≤; 'Value' only for the action 'Set value'. Numbers with period or comma. The target variable is switched via its action (like a click in the visualization); variables without an action are written directly."
                 },
                 {
                     "type": "Label",
-                    "caption": "Werte zum Nachschlagen (die Kachel bietet diese als Dropdown an, hier nur als Freitext möglich):"
+                    "caption": "Reference values (the tile offers these as a dropdown, here only free text is possible):"
                 },
                 {
                     "type": "Label",
-                    "caption": "StromGedacht-Ampel: -1 Supergrün · 1 Grün · 2 Gelb · 3 Orange · 4 Rot"
+                    "caption": "StromGedacht traffic light: -1 Super green · 1 Green · 2 Yellow · 3 Orange · 4 Red"
                 },
                 {
                     "type": "Label",
-                    "caption": "Energy-Charts-Signal: -1 Rot (Netzengpass) · 0 Rot · 1 Gelb · 2 Grün"
+                    "caption": "Energy-Charts signal: -1 Red (grid bottleneck) · 0 Red · 1 Yellow · 2 Green"
                 },
                 {
                     "type": "Label",
-                    "caption": "GrünstromIndex / Energy-Charts EE-Anteil: 0–100 (Prozent, keine festen Stufen)"
+                    "caption": "GrünstromIndex / Energy-Charts renewable share: 0–100 (percent, no fixed steps)"
                 }
             ]
         }
@@ -235,30 +235,30 @@
     "actions": [
         {
             "type": "Button",
-            "caption": "Jetzt aktualisieren",
+            "caption": "Update now",
             "onClick": "echo SGW_Update($id);"
         },
         {
             "type": "Button",
-            "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
-            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
+            "caption": "🔄 Force apply (without changing the form)",
+            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges()';"
         }
     ],
     "status": [
         {
             "code": 104,
             "icon": "inactive",
-            "caption": "Bitte Konfiguration vervollständigen (mind. eine Datenquelle aktivieren, ggf. Postleitzahl eintragen)"
+            "caption": "Please complete the configuration (enable at least one data source, enter a postal code if needed)"
         },
         {
             "code": 201,
             "icon": "error",
-            "caption": "Für diese Postleitzahl liegen bei keiner aktivierten Quelle Daten vor"
+            "caption": "No data for this postal code from any enabled source"
         },
         {
             "code": 202,
             "icon": "error",
-            "caption": "Keine aktivierte Quelle erreichbar – siehe Debug"
+            "caption": "No enabled source reachable – see debug"
         }
     ]
 }

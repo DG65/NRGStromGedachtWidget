@@ -84,11 +84,11 @@
     <div class="wrap" id="card">
         <div class="sgt-head">
             <div class="sgt-name" id="sgt-name">StromGedacht</div>
-            <button class="sgt-refresh" id="sgt-refresh" title="Jetzt aktualisieren">🔄</button>
+            <button class="sgt-refresh" id="sgt-refresh" title="{{t:Update now}}">🔄</button>
         </div>
         <div class="sgt-updated" id="sgt-updated" style="margin-bottom:14px"></div>
 
-        <div class="sgt-missing" id="sgt-missing" style="display:none">Keine Datenquelle gefunden – bitte in den Kachel-Einstellungen wählen.</div>
+        <div class="sgt-missing" id="sgt-missing" style="display:none">{{t:No data source found – please choose in the tile settings.}}</div>
 
         <div class="sgt-cols" id="sgt-cols"></div>
 
@@ -97,34 +97,34 @@
 
     <div class="sgt-ed" id="sgt-ed">
         <div class="sgt-ed-card">
-            <h3 id="ed-title">Regel bearbeiten</h3>
+            <h3 id="ed-title">{{t:Edit rule}}</h3>
 
-            <label>Wenn (mehrere Bedingungen werden mit UND verknüpft)</label>
+            <label>{{t:If (several conditions are combined with AND)}}</label>
             <div id="ed-conditions"></div>
-            <button class="sgt-add" type="button" id="ed-addcond">+ Bedingung (UND)</button>
+            <button class="sgt-add" type="button" id="ed-addcond">{{t:+ Condition (AND)}}</button>
 
-            <label for="ed-tfilter" style="margin-top:14px">Dann Zielvariable</label>
-            <input id="ed-tfilter" type="text" placeholder="Suchen (Name oder Pfad) …" autocomplete="off">
+            <label for="ed-tfilter" style="margin-top:14px">{{t:Then target variable}}</label>
+            <input id="ed-tfilter" type="text" placeholder="{{t:Search (name or path) …}}" autocomplete="off">
             <select id="ed-target" size="1" style="margin-top:6px"></select>
-            <div class="sgt-ed-hint">Angeboten werden schaltbare Variablen (mit Aktion). Andere Ziele lassen sich im Instanzformular wählen.</div>
+            <div class="sgt-ed-hint">{{t:Switchable variables (with an action) are offered. Other targets can be chosen in the instance form.}}</div>
 
-            <label for="ed-act">Aktion</label>
+            <label for="ed-act">{{t:Action}}</label>
             <select id="ed-act">
-                <option value="on">Einschalten</option>
-                <option value="off">Ausschalten</option>
-                <option value="toggle">Umschalten</option>
-                <option value="value">Wert setzen</option>
+                <option value="on">{{t:Switch on}}</option>
+                <option value="off">{{t:Switch off}}</option>
+                <option value="toggle">{{t:Toggle}}</option>
+                <option value="value">{{t:Set value}}</option>
             </select>
 
             <div id="ed-val-wrap">
-                <label for="ed-val">Wert</label>
+                <label for="ed-val">{{t:Value}}</label>
                 <select id="ed-val-sel" style="display:none"></select>
-                <input id="ed-val" type="text" placeholder="Wert">
+                <input id="ed-val" type="text" placeholder="{{t:Value}}">
             </div>
 
             <div class="sgt-ed-actions">
-                <button class="sgt-btn" id="ed-cancel">Abbrechen</button>
-                <button class="sgt-btn on" id="ed-save">Speichern</button>
+                <button class="sgt-btn" id="ed-cancel">{{t:Cancel}}</button>
+                <button class="sgt-btn on" id="ed-save">{{t:Save}}</button>
             </div>
         </div>
     </div>
@@ -134,7 +134,9 @@
             if (!ts) return '';
             var d = new Date(ts * 1000);
             function p(n) { return (n < 10 ? '0' : '') + n; }
-            return 'Aktualisiert: ' + p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+            var de = ('{{t:decimal comma}}' === ',');
+            var day = de ? p(d.getDate()) + '.' + p(d.getMonth() + 1) + '.' + d.getFullYear() : d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+            return '{{t:Updated:}} ' + day + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
         }
 
         function handleMessage(payload) {
@@ -203,10 +205,10 @@
                 hdrow.className = 'hdrow';
                 var hd = document.createElement('div');
                 hd.className = 'hd';
-                hd.textContent = 'Automationen';
+                hd.textContent = '{{t:Automations}}';
                 var add = document.createElement('button');
                 add.className = 'sgt-add';
-                add.textContent = '+ Neue Regel';
+                add.textContent = '{{t:+ New rule}}';
                 add.onclick = function () { edOpen(-1, null); };
                 hdrow.appendChild(hd);
                 hdrow.appendChild(add);
@@ -217,26 +219,26 @@
                     var t = document.createElement('span');
                     t.className = 't';
                     t.textContent = (r.emsConflict ? '⚠️ ' : '') + r.text;
-                    t.title = r.emsConflict ? 'Achtung: Zielvariable wird aktuell auch vom EMS gesteuert (Zwei-Regler-Kollision möglich) — ' + r.text : r.text;
+                    t.title = r.emsConflict ? '{{t:Warning: the target variable is currently also controlled by the EMS (two-controller collision possible)}} — ' + r.text : r.text;
                     var ed = document.createElement('button');
                     ed.className = 'sgt-ico';
                     ed.textContent = '✎';
-                    ed.title = 'Regel bearbeiten';
+                    ed.title = '{{t:Edit rule}}';
                     ed.onclick = function () { edOpen(r.i, r.rule, r.active); };
                     var del = document.createElement('button');
                     del.className = 'sgt-ico';
                     del.textContent = '\u{1F5D1}';
-                    del.title = 'Regel löschen';
+                    del.title = '{{t:Delete rule}}';
                     del.onclick = function () {
                         if (del.dataset.confirm === '1') { requestAction('ruleDelete', r.i); return; }
                         del.dataset.confirm = '1';
-                        del.textContent = 'Sicher?';
+                        del.textContent = '{{t:Sure?}}';
                         del.className = 'sgt-ico warn';
                         setTimeout(function () { del.dataset.confirm = ''; del.textContent = '\u{1F5D1}'; del.className = 'sgt-ico'; }, 3000);
                     };
                     var sw = document.createElement('button');
                     sw.className = 'sgt-sw' + (r.active ? ' on' : '');
-                    sw.setAttribute('aria-label', (r.active ? 'Regel deaktivieren: ' : 'Regel aktivieren: ') + r.text);
+                    sw.setAttribute('aria-label', (r.active ? '{{t:Disable rule:}} ' : '{{t:Enable rule:}} ') + r.text);
                     sw.onclick = function () { requestAction('rule', JSON.stringify({ i: r.i, on: !r.active })); };
                     row.appendChild(t);
                     row.appendChild(ed);
@@ -262,15 +264,15 @@
         var ED = { data: null, i: -1, rule: null, active: true, pendingOpen: false };
         var NUM_OPS = ['eq', 'ne', 'gt', 'ge', 'lt', 'le'];
         var OP_OPTIONS = [
-            { v: 'true', c: 'wird EIN (true)' },
-            { v: 'false', c: 'wird AUS (false)' },
-            { v: 'eq', c: '= (gleich)' },
-            { v: 'ne', c: '≠ (ungleich)' },
-            { v: 'gt', c: '> (größer)' },
-            { v: 'ge', c: '≥ (größer gleich)' },
-            { v: 'lt', c: '< (kleiner)' },
-            { v: 'le', c: '≤ (kleiner gleich)' },
-            { v: 'change', c: 'ändert sich' }
+            { v: 'true', c: '{{t:turns ON (true)}}' },
+            { v: 'false', c: '{{t:turns OFF (false)}}' },
+            { v: 'eq', c: '{{t:= (equal)}}' },
+            { v: 'ne', c: '{{t:≠ (not equal)}}' },
+            { v: 'gt', c: '{{t:> (greater)}}' },
+            { v: 'ge', c: '{{t:≥ (greater or equal)}}' },
+            { v: 'lt', c: '{{t:< (less)}}' },
+            { v: 'le', c: '{{t:≤ (less or equal)}}' },
+            { v: 'change', c: '{{t:changes}}' }
         ];
 
         function edOpen(i, rule, active) {
@@ -295,7 +297,7 @@
             del.type = 'button';
             del.className = 'sgt-ico warn';
             del.textContent = '\u{1F5D1}';
-            del.title = 'Bedingung entfernen';
+            del.title = '{{t:Remove condition}}';
             del.onclick = function () { box.remove(); edRefreshConditionTags(); };
             hd.appendChild(del);
             box.appendChild(hd);
@@ -330,7 +332,7 @@
             var cmp = document.createElement('input');
             cmp.type = 'text';
             cmp.className = 'ed-cond-cmp';
-            cmp.placeholder = 'Vergleichswert';
+            cmp.placeholder = '{{t:Compare value}}';
             cmp.value = cond.Compare || '';
             box.appendChild(cmp);
 
@@ -398,7 +400,7 @@
         function edRefreshConditionTags() {
             var boxes = document.querySelectorAll('#ed-conditions .ed-cond-box');
             boxes.forEach(function (box, idx) {
-                box.querySelector('.ed-cond-tag').textContent = (idx === 0) ? 'WENN' : 'UND';
+                box.querySelector('.ed-cond-tag').textContent = (idx === 0) ? '{{t:IF}}' : '{{t:AND}}';
                 var del = box.querySelector('.sgt-ico');
                 del.style.visibility = (boxes.length > 1) ? 'visible' : 'hidden';
             });
@@ -423,7 +425,7 @@
             edRenderTargets('');
             document.getElementById('ed-act').value = ED.rule.Action || 'on';
             document.getElementById('ed-val').value = ED.rule.Value || '';
-            document.getElementById('ed-title').textContent = (ED.i < 0) ? 'Neue Regel' : 'Regel bearbeiten';
+            document.getElementById('ed-title').textContent = (ED.i < 0) ? '{{t:New rule}}' : '{{t:Edit rule}}';
             edSync();
             document.getElementById('sgt-ed').classList.add('open');
         }

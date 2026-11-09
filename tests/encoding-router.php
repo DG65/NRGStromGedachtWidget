@@ -18,6 +18,17 @@ switch ($path) {
         header('Content-Encoding: gzip');
         echo gzencode($json);
         break;
+    case '/br-unless-gzip':
+        // hartnäckiger Server: Brotli, solange der Client nicht ausdrücklich gzip anfordert
+        header('Content-Type: application/json; charset=utf-8');
+        if (stripos($_SERVER['HTTP_ACCEPT_ENCODING'] ?? '', 'gzip') !== false) {
+            header('Content-Encoding: gzip');
+            echo gzencode($json);
+        } else {
+            header('Content-Encoding: br');
+            echo "\x0b\x05\x80" . $json . "\x03";
+        }
+        break;
     case '/echo-encoding':
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode(['acceptEncoding' => $_SERVER['HTTP_ACCEPT_ENCODING'] ?? null]);

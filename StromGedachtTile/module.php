@@ -34,25 +34,25 @@ class StromGedachtTile extends IPSModule
     private const COLOR_NODATA = '#9e9e9e';
 
     // Zustände laut StromGedacht API: -1 Supergrün, 1 Grün, 2 Gelb, 3 Orange, 4 Rot
-    private const SG_LABELS = [-1 => 'Supergrün', 1 => 'Grün', 2 => 'Gelb', 3 => 'Orange', 4 => 'Rot'];
+    private const SG_LABELS = [-1 => 'Super green', 1 => 'Green', 2 => 'Yellow', 3 => 'Orange', 4 => 'Red'];
     // Wortwahl an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen,
     // siehe StromGedachtWidget/module.php.
     private const SG_TEXTS = [
-        -1 => 'Strom bevorzugt jetzt nutzen – besonders viel erneuerbare Energie im Netz',
-        1  => 'Strom wie gewohnt nutzen – Normalbetrieb',
-        2  => 'Angespannte Netzsituation',
-        3  => 'Verbrauch reduzieren – hilft, Kosten und CO₂ zu sparen',
-        4  => 'Verbrauch vermeiden – hilft, einen Strommangel zu verhindern'
+        -1 => 'Use electricity preferably now – especially a lot of renewable energy in the grid',
+        1  => 'Use electricity as usual – normal operation',
+        2  => 'Strained grid situation',
+        3  => 'Reduce consumption – helps to save costs and CO₂',
+        4  => 'Avoid consumption – helps to prevent an electricity shortage'
     ];
     private const SG_LEVEL = [-1 => 'supergreen', 1 => 'green', 2 => 'yellow', 3 => 'orange', 4 => 'red'];
 
     // Signale laut Energy-Charts API: -1/0 Rot, 1 Gelb, 2 Grün
-    private const EC_LABELS = [-1 => 'Rot (Netzengpass)', 0 => 'Rot', 1 => 'Gelb', 2 => 'Grün'];
+    private const EC_LABELS = [-1 => 'Red (grid bottleneck)', 0 => 'Red', 1 => 'Yellow', 2 => 'Green'];
     private const EC_TEXTS = [
-        -1 => 'Netzengpass – Verbrauch reduzieren',
-        0  => 'Niedriger Anteil erneuerbarer Energien',
-        1  => 'Durchschnittlicher Anteil erneuerbarer Energien',
-        2  => 'Hoher Anteil erneuerbarer Energien'
+        -1 => 'Grid bottleneck – reduce consumption',
+        0  => 'Low share of renewable energy',
+        1  => 'Average share of renewable energy',
+        2  => 'High share of renewable energy'
     ];
     private const EC_LEVEL = [-1 => 'red', 0 => 'red', 1 => 'yellow', 2 => 'green'];
 
@@ -71,19 +71,20 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.9.0';
+    private const MODULE_VERSION = '1.10.0';
     private const NEWS_ITEMS = [
-        '🪟 Neu: Formular-Aufbau selbst wählen. Im neuen, eingeklappten Panel "Formular: Aufbau" legst du für Ampelfarben, Flächen & Text und Schrift fest, ob sie beim Öffnen aufgeklappt, zugeklappt oder ausgeblendet sind und in welcher Reihenfolge sie stehen. Ausgeblendete Bereiche arbeiten weiter, ihre Einstellungen bleiben erhalten. Kein Haken = wie bisher.',
-        'Wird die Datenquelle automatisch erkannt (genau eine StromGedachtWidget-Instanz, keine eigene Wahl), ist das Auswahlfeld "Datenquelle" jetzt ausgeblendet und nur die Zeile "🔗 Datenquelle: ..." steht da. Wählst du selbst eine Instanz, bleibt das Feld sichtbar. Die Zeile folgt außerdem sofort deiner Auswahl, noch vor dem Übernehmen.',
-        'Das Formular zeigt jetzt, welche Datenquelle erkannt wurde: Instanz, Name, wie sie ermittelt wurde (automatisch/manuell) und welche Werte aktuell angezeigt werden. Bei mehreren Instanzen ohne Auswahl bzw. ohne gefundene Instanz gibt es einen klaren Hinweis statt eines statischen Satzes.',
-        'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular sowie ein neuer, dismissibler Forum-Hinweis "💬 Feedback im Symcon-Forum" (vorher gab es hier gar keinen).',
-        'Hast du mehrere Kacheln (z. B. für verschiedene StromGedachtWidget-Quellen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Kachel einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
-        '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
-        '🔧 Interne Robustheit: eingelesene Formularwerte (Farben, Schriftart, Skalierung) werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
-        'Sicherheitsfix: Die Automationen-Verwaltung (Regel anlegen/bearbeiten/löschen, Zielvariablen-Liste) wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher war das nur clientseitig ausgeblendet.',
-        'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
-        'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
-        'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
+        '🌐 Now bilingual (English/German): form, messages, status texts and the tile follow the Symcon language. The "don\'t show again" state is now synchronized with other tiles when the form is opened, no longer while changes are applied.',
+        '🪟 New: choose the form layout yourself. In the new, collapsed panel "Form: layout" you decide for traffic-light colors, surfaces & text and font whether they are expanded, collapsed or hidden when the form opens, and in which order they appear. Hidden sections keep working, their settings are kept. No checkbox = as before.',
+        'If the data source is detected automatically (exactly one StromGedachtWidget instance, no choice of your own), the "Data source" field is now hidden and only the line "🔗 Data source: ..." is shown. If you choose an instance yourself, the field stays visible. The line also follows your selection immediately, before applying.',
+        'The form now shows which data source was detected: instance, name, how it was determined (automatic/manual) and which values are currently shown. With several instances and no selection, or with no instance found, there is a clear notice instead of a static sentence.',
+        'New panel "🧡 About this module" (license/donations) at the very bottom of the form, plus a new dismissible forum hint "💬 Feedback in the Symcon forum" (there was none before).',
+        'Do you have several tiles (e.g. for different StromGedachtWidget sources)? "What is this module for?", "What is new?" and the forum hint no longer have to be dismissed on every tile separately — one click on one tile is enough for all.',
+        '👋 New panel "What is this module for?" at the very top of the form — a short introduction, can be hidden once.',
+        '🔧 Internal robustness: form values read in (colors, font, scaling) are now consistently type-checked before further processing (prevents rare crashes while a module is reloading).',
+        'Security fix: the automation management (create/edit/delete rule, target variable list) is now also blocked on the server side when "Show automations" is disabled — before, it was only hidden on the client.',
+        'New button "🔄 Force apply" calls IPS_ApplyChanges() directly, without you having to change anything in the form first.',
+        'License change: PolyForm Noncommercial 1.0.0 instead of MIT — private/non-commercial use stays free, commercial use now requires a license.',
+        'Part of the NRG-Stack (DG65 module family) — see SUITE.md for which module versions fit together.'
     ];
 
     public function Create()
@@ -125,10 +126,6 @@ class StromGedachtTile extends IPSModule
         parent::ApplyChanges();
 
         $this->SetVisualizationType(1);
-
-        // Vor der Quellenauflösung - das Ausblenden-Teilen (mehrere Kachel-Instanzen)
-        // gilt unabhängig davon, ob diese Instanz schon eine Quelle gefunden hat.
-        $this->AdoptDismissFromSibling();
 
         // Bisherige VM_UPDATE-Registrierungen lösen
         foreach ($this->GetMessageList() as $senderID => $messages) {
@@ -177,10 +174,15 @@ class StromGedachtTile extends IPSModule
             $form = ['elements' => [], 'actions' => [], 'status' => []];
         }
 
+        // Abgleich des "nicht mehr anzeigen"-Stands mit Geschwister-Kacheln hier statt in
+        // ApplyChanges: Beim Neuladen von Modulen sind die anderen Instanzen evtl. noch nicht
+        // geladen (Symcon-Review Tessie 2.38.3, Store-Checkliste 27, SUITE.md).
+        $this->AdoptDismissFromSibling();
+
         // Versionsnummer ins Doku-Panel patchen (Formular-Konvention des NRG-Stack)
         foreach ($form['elements'] as &$element) {
             if (is_array($element) && ($element['name'] ?? '') === 'DocPanel') {
-                $element['caption'] = '📖 Dokumentation & Hilfe (v' . self::MODULE_VERSION . ')';
+                $element['caption'] = sprintf($this->Translate('📖 Documentation & help (v%s)'), self::MODULE_VERSION);
             }
         }
         unset($element);
@@ -267,11 +269,11 @@ class StromGedachtTile extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Diese Kachel zeigt die Ampel-/Signalwerte einer StromGedachtWidget-Instanz direkt im WebFront an — praktisch, wenn du unterwegs oder auf einem Tablet im Blick behalten willst, wann Strom im Netz gerade besonders grün oder besonders knapp ist.'],
-                ['type' => 'Label', 'caption' => 'Zusätzlich kannst du hier, ohne die Verwaltungskonsole zu öffnen, eigene Wenn→Dann-Regeln anlegen, bearbeiten und aktivieren (z. B. Warmwasser bei Supergrün einschalten) — dieselben Regeln, die auch im klassischen Instanzformular des Widgets verfügbar sind.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGWTILE_AckPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'This tile shows the traffic-light/signal values of a StromGedachtWidget instance directly in the WebFront — handy when you are on the go or on a tablet and want to keep an eye on when electricity in the grid is particularly green or particularly scarce.'],
+                ['type' => 'Label', 'caption' => 'In addition, you can create, edit and enable your own If→Then rules here without opening the management console (e.g. switch on hot water at super green) — the same rules that are available in the widget\'s classic instance form.'],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGWTILE_AckPurposeIntro($id);'],
             ],
         ];
     }
@@ -289,12 +291,12 @@ class StromGedachtTile extends IPSModule
         if ($this->ReadAttributeString('SeenNews') === self::MODULE_VERSION) {
             return null;
         }
-        $items = [['type' => 'Label', 'caption' => '🆕 Neu in diesem Modul — bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        $items = [['type' => 'Label', 'caption' => $this->Translate('🆕 New in this module — please take a quick look and check your settings if necessary:')]];
         foreach (self::NEWS_ITEMS as $line) {
-            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $this->Translate($line)];
         }
-        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGWTILE_AckNews($id);'];
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::MODULE_VERSION, 'expanded' => true, 'items' => $items];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGWTILE_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => sprintf($this->Translate('🆕 New in version %s'), self::MODULE_VERSION), 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
@@ -312,11 +314,11 @@ class StromGedachtTile extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => '⭐ Gefällt dir diese Kachel? Über eine Bewertung im Module Store oder eine Rückmeldung im Community-Thread freue ich mich!'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGWTILE_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => '⭐ Do you like this tile? I am happy about a rating in the Module Store or feedback in the community thread!'],
+                ['type' => 'Button', 'caption' => 'Go to the forum thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGWTILE_AckForumHint($id);'],
             ],
         ];
     }
@@ -367,7 +369,7 @@ class StromGedachtTile extends IPSModule
         $rows = [];
         $hidden = [];
         foreach ($layout as $key => $l) {
-            $name = trim((string) preg_replace('/\s*\(.*$/u', '', (string) ($free[$key]['caption'] ?? $key)));
+            $name = trim((string) preg_replace('/\s*\(.*$/u', '', $this->Translate((string) ($free[$key]['caption'] ?? $key))));
             $rows[] = ['Key' => $key, 'Panel' => $name, 'Opened' => $l['open'] === 'open', 'Closed' => $l['open'] === 'closed',
                 'Hidden' => $l['open'] === 'hidden', 'Pos' => $l['pos']];
             if ($l['open'] === 'hidden') {
@@ -375,28 +377,28 @@ class StromGedachtTile extends IPSModule
             }
         }
         $hiddenLine = $hidden
-            ? [['type' => 'Label', 'caption' => '🙈 Ausgeblendet: ' . implode(', ', $hidden) . ' - zum Wiederzeigen den Haken bei „Ausgeblendet“ entfernen. Ausgeblendete Bereiche arbeiten weiter, nur die Anzeige fehlt.']]
+            ? [['type' => 'Label', 'caption' => sprintf($this->Translate('🙈 Hidden: %s — to show again, clear the "Hidden" checkbox. Hidden sections keep working, only the display is missing.'), implode(', ', $hidden))]]
             : [];
         return [
             'type' => 'ExpansionPanel', 'name' => 'LayoutPanel', 'expanded' => false,
-            'caption' => '🪟  Formular: Aufbau' . ($hidden ? ' (' . count($hidden) . ' ausgeblendet)' : ''),
+            'caption' => sprintf($this->Translate('🪟  Form: layout%s'), $hidden ? sprintf($this->Translate(' (%d hidden)'), count($hidden)) : ''),
             'items' => array_merge($hiddenLine, [
-                ['type' => 'Label', 'caption' => 'Hier legst du fest, welche Bereiche beim Öffnen des Formulars aufgeklappt sind und in welcher Reihenfolge sie stehen. Symcon merkt sich das Auf- und Zuklappen nicht selbst, deshalb gilt die Einstellung hier jedes Mal beim Öffnen. Sie wirkt nach „Übernehmen“ beim nächsten Öffnen des Formulars.'],
-                ['type' => 'Label', 'caption' => 'Kein Haken heißt „Standard“: wie das Modul es vorsieht (hier: zugeklappt). Die Position ist eine Zahl; bei gleicher Zahl bleibt die Standardreihenfolge. „Ausgeblendet“ nimmt einen Bereich aus der Anzeige, ohne dass er etwas verliert: seine Einstellungen bleiben erhalten und wirken weiter. Zum Wiederzeigen den Haken bei „Ausgeblendet“ entfernen oder „Auf Standard zurücksetzen“ klicken. Sind mehrere Haken gesetzt, gilt „Ausgeblendet“ vor „Zugeklappt“ vor „Aufgeklappt“. Die Bereiche oben (Zweck, Neu, Dokumentation) und unten (Rückmeldungen, Über dieses Modul) bleiben, wo sie sind, und lassen sich nicht ausblenden.'],
+                ['type' => 'Label', 'caption' => 'Here you decide which sections are expanded when the form opens and in which order they appear. Symcon does not remember expanding and collapsing, so this setting applies every time the form opens. It takes effect after "Apply" the next time the form is opened.'],
+                ['type' => 'Label', 'caption' => 'No checkbox means "default": as the module intends (here: collapsed). The position is a number; with equal numbers the default order applies. "Hidden" removes a section from the display without it losing anything: its settings are kept and keep working. To show it again, clear the "Hidden" checkbox or click "Reset to default". If several checkboxes are set, "Hidden" wins over "Collapsed", which wins over "Expanded". The sections at the top (purpose, news, documentation) and at the bottom (feedback, about this module) stay where they are and cannot be hidden.'],
                 [
-                    'type' => 'List', 'name' => 'FormLayout', 'caption' => 'Bereiche', 'rowCount' => count($rows), 'add' => false, 'delete' => false,
+                    'type' => 'List', 'name' => 'FormLayout', 'caption' => 'Sections', 'rowCount' => count($rows), 'add' => false, 'delete' => false,
                     'loadValuesFromConfiguration' => false,
                     'values' => $rows,
                     'columns' => [
-                        ['caption' => 'Bereich', 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
-                        ['caption' => 'Schlüssel', 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
-                        ['caption' => 'Aufgeklappt', 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => 'Zugeklappt', 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
-                        ['caption' => '🙈 Ausgeblendet', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Section', 'name' => 'Panel', 'width' => 'auto', 'add' => ''],
+                        ['caption' => 'Key', 'name' => 'Key', 'width' => '0px', 'visible' => false, 'add' => '', 'save' => true],
+                        ['caption' => 'Expanded', 'name' => 'Opened', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => 'Collapsed', 'name' => 'Closed', 'width' => '110px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
+                        ['caption' => '🙈 Hidden', 'name' => 'Hidden', 'width' => '130px', 'add' => false, 'edit' => ['type' => 'CheckBox']],
                         ['caption' => 'Position', 'name' => 'Pos', 'width' => '100px', 'add' => 1, 'edit' => ['type' => 'NumberSpinner', 'minimum' => 1, 'maximum' => 99]]
                     ]
                 ],
-                ['type' => 'Button', 'caption' => '↩️ Auf Standard zurücksetzen', 'onClick' => 'echo SGWTILE_ResetFormLayout($id);']
+                ['type' => 'Button', 'caption' => '↩️ Reset to default', 'onClick' => 'echo SGWTILE_ResetFormLayout($id);']
             ])
         ];
     }
@@ -414,10 +416,10 @@ class StromGedachtTile extends IPSModule
         $rows = [];
         $pos = 1;
         foreach (array_keys(self::LAYOUT_PANELS_BY_KEY) as $key) {
-            $rows[] = ['Key' => $key, 'Panel' => $captions[$key] ?? $key, 'Opened' => false, 'Closed' => false, 'Hidden' => false, 'Pos' => $pos++];
+            $rows[] = ['Key' => $key, 'Panel' => $this->Translate($captions[$key] ?? $key), 'Opened' => false, 'Closed' => false, 'Hidden' => false, 'Pos' => $pos++];
         }
         $this->UpdateFormField('FormLayout', 'values', json_encode($rows, JSON_UNESCAPED_UNICODE));
-        return 'ℹ️ Auf Standard gesetzt. Zum Speichern unten „Übernehmen“ klicken.';
+        return $this->Translate('ℹ️ Reset to default. Click "Apply" below to save.');
     }
 
     /**
@@ -429,14 +431,14 @@ class StromGedachtTile extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'You like the module and would like to leave something anyway? I am happy about a small donation — completely voluntary, nothing required in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -621,6 +623,12 @@ class StromGedachtTile extends IPSModule
     public function GetVisualizationTile()
     {
         $module = file_get_contents(__DIR__ . '/module.html');
+        // Texte der Kachel: {{t:Englischer Schlüssel}} einmal je Laden in die Symcon-Sprache übersetzen
+        // (nicht je Update - Stolperstein 24). Übersetzungen enthalten bewusst keine Anführungszeichen
+        // oder Backslashes, da die Token auch in JavaScript-Zeichenketten stehen (Test prüft das).
+        $module = preg_replace_callback('/\{\{t:(.*?)\}\}/u', function (array $m): string {
+            return $this->Translate($m[1]);
+        }, $module);
         // handleMessage() ist erst im HTML definiert -> initialen Aufruf ans Ende hängen.
         $module .= '<script>handleMessage(' . json_encode($this->GetFullUpdateMessage()) . ');</script>';
         return $module;
@@ -671,8 +679,8 @@ class StromGedachtTile extends IPSModule
             $columns[] = [
                 'title' => 'StromGedacht',
                 'color' => $this->ColorForLevel(self::SG_LEVEL[$state] ?? null),
-                'label' => self::SG_LABELS[$state] ?? 'Unbekannt',
-                'text'  => self::SG_TEXTS[$state] ?? ''
+                'label' => $this->Translate(self::SG_LABELS[$state] ?? 'Unknown'),
+                'text'  => isset(self::SG_TEXTS[$state]) ? $this->Translate(self::SG_TEXTS[$state]) : ''
             ];
         }
 
@@ -681,13 +689,13 @@ class StromGedachtTile extends IPSModule
             $gsi = (float) $gsi;
             if ($gsi >= 66) {
                 $level = 'green';
-                $text = 'Hoher Grünstrom-Anteil in der Region';
+                $text = $this->Translate('High share of green electricity in the region');
             } elseif ($gsi >= 33) {
                 $level = 'yellow';
-                $text = 'Durchschnittlicher Grünstrom-Anteil in der Region';
+                $text = $this->Translate('Average share of green electricity in the region');
             } else {
                 $level = 'red';
-                $text = 'Niedriger Grünstrom-Anteil in der Region';
+                $text = $this->Translate('Low share of green electricity in the region');
             }
             $columns[] = [
                 'title' => 'GrünstromIndex',
@@ -701,19 +709,26 @@ class StromGedachtTile extends IPSModule
         if ($ecSignal !== null) {
             $ecSignal = (int) $ecSignal;
             $share = $this->ReadSourceValue($src, 'ECShare');
-            $text = self::EC_TEXTS[$ecSignal] ?? 'Unbekanntes Signal';
+            $text = $this->Translate(self::EC_TEXTS[$ecSignal] ?? 'Unknown signal');
             if ($share !== null) {
-                $text .= ' (EE-Anteil: ' . number_format((float) $share, 1, ',', '.') . ' %)';
+                $text = sprintf($this->Translate('%s (renewable share: %s %%)'), $text, $this->formatDecimal((float) $share, 1));
             }
             $columns[] = [
                 'title' => 'Energy-Charts',
                 'color' => $this->ColorForLevel(self::EC_LEVEL[$ecSignal] ?? null),
-                'label' => self::EC_LABELS[$ecSignal] ?? 'Unbekannt',
+                'label' => $this->Translate(self::EC_LABELS[$ecSignal] ?? 'Unknown'),
                 'text'  => $text
             ];
         }
 
         return $columns;
+    }
+
+    private function formatDecimal(float $value, int $decimals): string
+    {
+        // Schlüssel ist absichtlich kein Satz: Deutsch liefert "," zurück, jede andere Sprache den Schlüssel selbst
+        $german = $this->Translate('decimal comma') === ',';
+        return number_format($value, $decimals, $german ? ',' : '.', $german ? '.' : ',');
     }
 
     private function ColorForLevel(?string $level): string
@@ -784,26 +799,24 @@ class StromGedachtTile extends IPSModule
 
         if ($configured > 0 && IPS_InstanceExists($configured)) {
             $src = $configured;
-            $how = 'manuell gewählt';
+            $how = $this->Translate('chosen manually');
             $mark = '✏️';
         } else {
             if ($configured > 0) {
-                $prefix = 'Die gewählte Instanz #' . $configured . ' existiert nicht mehr. ';
+                $prefix = sprintf($this->Translate('The chosen instance #%d no longer exists.'), $configured) . ' ';
             }
             if (count($list) === 1) {
                 $src = $list[0];
-                $how = 'automatisch erkannt';
+                $how = $this->Translate('detected automatically');
                 $mark = '🔗';
             } elseif (count($list) > 1) {
                 $names = [];
                 foreach ($list as $id) {
                     $names[] = '#' . $id . ' „' . IPS_GetName($id) . '“';
                 }
-                return '⚠️ ' . $prefix . count($list) . ' StromGedachtWidget-Instanzen gefunden (' . implode(', ', $names)
-                    . '), aber keine Datenquelle gewählt - bitte unten „Datenquelle“ auswählen. Bis dahin zeigt die Kachel keine Daten.';
+                return '⚠️ ' . $prefix . sprintf($this->Translate('%d StromGedachtWidget instances found (%s), but no data source chosen - please choose "Data source" below. Until then the tile shows no data.'), count($list), implode(', ', $names));
             } else {
-                return 'ℹ️ ' . $prefix . 'Keine StromGedachtWidget-Instanz gefunden - die Kachel zeigt „Keine Datenquelle gefunden“ und die '
-                    . 'Automationen sind nicht verfügbar, bis eine Instanz angelegt oder unten gewählt ist.';
+                return 'ℹ️ ' . $prefix . $this->Translate('No StromGedachtWidget instance found - the tile shows "No data source found" and the automations are not available until an instance is created or chosen below.');
             }
         }
 
@@ -811,11 +824,11 @@ class StromGedachtTile extends IPSModule
         foreach ($this->BuildColumns($src) as $col) {
             $values[] = $col['title'] . ': ' . $col['label'];
         }
-        $head = $prefix . 'Datenquelle: StromGedachtWidget #' . $src . ' „' . IPS_GetName($src) . '“ (' . $how . ').';
+        $head = $prefix . sprintf($this->Translate('Data source: StromGedachtWidget #%d "%s" (%s).'), $src, IPS_GetName($src), $how);
         if (count($values) === 0) {
-            return '⚠️ ' . $head . ' Verbunden, liefert aber noch keine Werte - in der Quelle ist keine Datenquelle aktiviert oder es wurde noch nicht abgerufen.';
+            return '⚠️ ' . $head . ' ' . $this->Translate('Connected, but no values yet - no data source is enabled in the source or it has not been queried yet.');
         }
-        return $mark . ' ' . $head . ' Aktuell angezeigt: ' . implode(' · ', $values) . '.';
+        return $mark . ' ' . $head . ' ' . sprintf($this->Translate('Currently shown: %s.'), implode(' · ', $values));
     }
 
     private function ResolveSource(): int

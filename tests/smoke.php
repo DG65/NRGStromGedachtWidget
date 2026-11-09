@@ -35,6 +35,7 @@ function IPS_GetInstanceListByModuleID($guid) { return $GLOBALS['__instancesByMo
 function IPS_InstanceExists($id) { return isset($GLOBALS['__instancesById'][$id]); }
 function SGW_AdoptDismissState($id, $what, $value) { $GLOBALS['__instancesById'][$id]->AdoptDismissState($what, $value); }
 function SGW_GetDismissState($id) { return $GLOBALS['__instancesById'][$id]->GetDismissState(); }
+function SGW_GetDataActions($id) { return $GLOBALS['__instancesById'][$id]->GetDataActions(); }
 
 // Fremde Zielvariablen (für DataActions-Regeln), für die GetDataActions()/
 // GetConfigurationForm() Namen auflösen müssen - Register je Vid.
@@ -118,6 +119,24 @@ class IPSModule
     public function SetStatus($status) { $this->status = $status; }
     public function UpdateFormField($field, $key, $value) { $GLOBALS['__formFieldCalls'][] = [$field, $key, $value]; }
 
+    // Translate()-Stub wie die Symcon-Kernfunktion: sucht den Schlüssel in der locale.json des
+    // Moduls (Verzeichnis der Klassendatei); unbekannte Schlüssel und Sprache 'en' liefern den
+    // Schlüssel selbst zurück. Sprache über $GLOBALS['__lang'] ('de' ist Standard, damit die
+    // bestehenden deutschen Prüfungen unverändert gelten). Aufrufe werden gezählt (Stolperstein 24).
+    public function Translate($text)
+    {
+        $GLOBALS['__translateCalls'] = ($GLOBALS['__translateCalls'] ?? 0) + 1;
+        $GLOBALS['__translateKeys'][$text] = true;
+        if (($GLOBALS['__lang'] ?? 'de') !== 'de') {
+            return $text;
+        }
+        $dir = dirname((new ReflectionClass($this))->getFileName());
+        if (!isset($GLOBALS['__locale'][$dir])) {
+            $json = json_decode((string) file_get_contents($dir . '/locale.json'), true);
+            $GLOBALS['__locale'][$dir] = $json['translations']['de'] ?? [];
+        }
+        return $GLOBALS['__locale'][$dir][$text] ?? $text;
+    }
     public function SendDebug($caption, $message, $format)
     {
         if (getenv('SMOKE_DEBUG')) {
@@ -128,6 +147,27 @@ class IPSModule
 
 require __DIR__ . '/../StromGedachtWidget/module.php';
 require __DIR__ . '/../StromGedachtTile/module.php';
+
+// Emuliert die Symcon-Konsole: Sie übersetzt Beschriftungen eines Formulars (caption/label/suffix/prefix
+// und Status-/Options-Texte) anhand der locale.json selbst (Store-Checkliste Punkt 25) - das Modul
+// liefert deshalb englischen Quelltext. Für Prüfungen auf die deutsche Darstellung.
+function consoleForm(IPSModule $module, string $json): array
+{
+    $walk = function ($node) use (&$walk, $module) {
+        if (!is_array($node)) {
+            return $node;
+        }
+        foreach ($node as $k => $v) {
+            if (in_array($k, ['caption', 'label', 'suffix', 'prefix'], true) && is_string($v)) {
+                $node[$k] = $module->Translate($v);
+            } else {
+                $node[$k] = $walk($v);
+            }
+        }
+        return $node;
+    };
+    return $walk(json_decode($json, true));
+}
 
 // [Properties, erwarteter Status, erwartete Variablen, verbotene Variablen]
 $cases = [
@@ -518,17 +558,21 @@ if (!$ok) {
     $failures++;
 }
 
-// Später hinzugekommene Instanz übernimmt beim allerersten ApplyChanges() automatisch den
-// Stand bereits registrierter Geschwister-Instanzen (A/B, oben bereits bestätigt) - ganz
-// ohne selbst je Ack* aufzurufen. Muss dafür NICHT selbst vorher registriert sein: die
-// Registrierung ist nur relevant, damit ANDERE Instanzen diese hier später finden können.
+// Später hinzugekommene Instanz übernimmt den Stand bereits registrierter Geschwister-Instanzen
+// (A/B, oben bereits bestätigt) beim ÖFFNEN des Formulars - ganz ohne selbst je Ack* aufzurufen.
+// Nicht in ApplyChanges(): dort sind die Geschwister beim Neuladen von Modulen evtl. noch nicht
+// geladen (Store-Checkliste Punkt 27). Muss dafür NICHT selbst vorher registriert sein.
 $sibC = new StromGedachtWidget($noSourceProps);
 $sibC->Create();
 $sibC->ApplyChanges();
-$ok = $sibC->ReadAttributeBoolean('PurposeIntroGone') === true
+$notYet = $sibC->ReadAttributeBoolean('PurposeIntroGone') === false
+    && $sibC->ReadAttributeBoolean('ForumHintGone') === false;
+$sibC->GetConfigurationForm();
+$ok = $notYet
+    && $sibC->ReadAttributeBoolean('PurposeIntroGone') === true
     && $sibC->ReadAttributeBoolean('ForumHintGone') === true
     && $sibC->ReadAttributeString('SeenNews') === $moduleVersion;
-printf("%s Ausblenden-Teilen: neu hinzugekommene Instanz C übernimmt beim ersten ApplyChanges() den Stand vorhandener Geschwister-Instanzen\n", $ok ? 'PASS' : 'FAIL');
+printf("%s Ausblenden-Teilen: neu hinzugekommene Instanz C übernimmt den Stand der Geschwister beim Öffnen des Formulars (nicht in ApplyChanges, Punkt 27)\n", $ok ? 'PASS' : 'FAIL');
 if (!$ok) {
     $failures++;
 }
@@ -560,7 +604,7 @@ function tileForm(array $props): array
 {
     $tile = new StromGedachtTile($props);
     $tile->Create();
-    return json_decode($tile->GetConfigurationForm(), true);
+    return consoleForm($tile, $tile->GetConfigurationForm());
 }
 // Sichtbarkeit des Auswahlfelds "Datenquelle" (fehlendes visible = sichtbar)
 function tileSelectVisible(array $props): bool
@@ -882,10 +926,195 @@ if (!$serverUp) {
     if (!$ok) {
         $failures++;
     }
+
+    // Ganzer Abrufweg (HttpGet): hartnäckiger Server liefert trotz "identity" Brotli, gibt aber nach
+    // ausdrücklicher gzip-Anforderung nach -> der Abruf gelingt im selben Lauf, ohne Datenlücke.
+    $httpGet = new ReflectionMethod($httpModule, 'HttpGet');
+    [$code, $body] = $httpGet->invoke($httpModule, $base . '/br-unless-gzip');
+    $ok = $code === 200 && json_decode((string) $body, true) === ['state' => 1];
+    printf("%s HTTP: Brotli trotz identity -> sofortige Wiederholung mit gzip liefert die Daten\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
+
+    [$code, $body] = $httpGet->invoke($httpModule, $base . '/br');
+    $ok = $body === null;
+    printf("%s HTTP: Server liefert immer Brotli -> sauberer Fehler (null) statt Binärmüll, keine Endlosschleife\n", $ok ? 'PASS' : 'FAIL');
+    if (!$ok) {
+        $failures++;
+    }
 }
 if ($serverProc !== false) {
     proc_terminate($serverProc);
     proc_close($serverProc);
 }
+
+// ---------------------------------------------------------------------------
+// Zweisprachigkeit (Englisch im Quelltext, Deutsch in locale.json - SUITE.md Punkt 9, Store-Checkliste 25)
+// ---------------------------------------------------------------------------
+$unq = function (string $t): string { return str_replace(["\\'", '\\\\'], ["'", '\\'], $t); };
+// Alle Quelltext-Schlüssel eines Moduls einsammeln: Translate()-Literale, Konstanten-Texte,
+// 'caption' => '...'-Literale im PHP-Formular, form.json-Texte und {{t:...}}-Token der Kachel.
+$collectKeys = function (string $dir) use ($unq): array {
+    $src = (string) file_get_contents($dir . '/module.php');
+    $q = "'((?:[^'\\\\]|\\\\.)*)'";
+    $keys = [];
+    preg_match_all('/Translate\(\s*' . $q . '/', $src, $m);
+    foreach ($m[1] as $t) { $keys[] = $unq($t); }
+    preg_match_all("/'caption' => " . $q . '/', $src, $m);
+    foreach ($m[1] as $t) { $keys[] = $unq($t); }
+    // Rückfallwerte wie Translate(self::X[$i] ?? 'Unknown')
+    preg_match_all('/Translate\([^;\n]*?\?\? *' . $q . '/', $src, $m);
+    foreach ($m[1] as $t) { $keys[] = $unq($t); }
+    foreach (['SG_LABELS', 'SG_TEXTS', 'EC_LABELS', 'EC_TEXTS', 'NEWS_ITEMS'] as $const) {
+        if (preg_match('/const ' . $const . ' = \[(.*?)\n?\s*\];/s', $src, $block)) {
+            $pattern = $const === 'NEWS_ITEMS' ? '/' . $q . '/' : '/=> *' . $q . '/';
+            preg_match_all($pattern, $block[1], $m);
+            foreach ($m[1] as $t) { $keys[] = $unq($t); }
+        }
+    }
+    $walk = function ($node) use (&$walk, &$keys) {
+        if (is_array($node)) {
+            foreach ($node as $k => $v) {
+                if (in_array($k, ['caption', 'suffix', 'label', 'prefix'], true) && is_string($v)) { $keys[] = $v; } else { $walk($v); }
+            }
+        }
+    };
+    $walk(json_decode((string) file_get_contents($dir . '/form.json'), true));
+    if (is_file($dir . '/module.html')) {
+        preg_match_all('/\{\{t:(.*?)\}\}/u', (string) file_get_contents($dir . '/module.html'), $m);
+        foreach ($m[1] as $t) { $keys[] = $t; }
+    }
+    // reine Zeichen-/Zahlenketten (Trenner, Bullet, Einheiten) sind keine übersetzbaren Texte
+    return array_values(array_unique(array_filter($keys, function ($k) { return preg_match('/\p{L}/u', $k) === 1; })));
+};
+$germanWords = '/\b(nicht|und|für|der|die|das|mit|wird|ist|eine|oder|bei|zum|zur|noch|bitte|keine|wenn|dann)\b|[äöüß]/iu';
+$productWords = ['GrünstromIndex', 'Baden-Württemberg', 'Württemberg', 'MIT'];
+foreach (['StromGedachtWidget' => 'Widget', 'StromGedachtTile' => 'Kachel'] as $dirName => $label) {
+    $dir = __DIR__ . '/../' . $dirName;
+    $loc = json_decode((string) file_get_contents($dir . '/locale.json'), true)['translations']['de'] ?? null;
+    $keys = $collectKeys($dir);
+    $missing = array_values(array_filter($keys, function ($k) use ($loc) { return !isset($loc[$k]); }));
+    $ok = is_array($loc) && count($missing) === 0;
+    printf("%s Zweisprachigkeit %s: alle %d Quelltext-Schlüssel stehen in locale.json%s\n", $ok ? 'PASS' : 'FAIL', $label, count($keys), $ok ? '' : ' - fehlt: ' . implode(' | ', array_map(function ($k) { return mb_substr($k, 0, 60); }, $missing)));
+    if (!$ok) { $failures++; }
+
+    $unused = array_values(array_diff(array_keys($loc ?? []), $keys));
+    // Schlüssel, die nur dynamisch zusammengesetzt werden, dürfen ungenutzt wirken - nur melden
+    if ($unused) {
+        printf("INFO Zweisprachigkeit %s: %d locale.json-Einträge ohne gefundenen Quelltext-Bezug: %s\n", $label, count($unused), implode(' | ', array_map(function ($k) { return mb_substr($k, 0, 40); }, $unused)));
+    }
+
+    $badSource = [];
+    foreach ($keys as $k) {
+        $clean = str_replace($productWords, '', $k);
+        if (preg_match($germanWords, $clean) === 1) { $badSource[] = mb_substr($k, 0, 60); }
+    }
+    $ok = count($badSource) === 0;
+    printf("%s Zweisprachigkeit %s: Quelltext-Schlüssel sind Englisch (kein deutsches Wort/Umlaut)%s\n", $ok ? 'PASS' : 'FAIL', $label, $ok ? '' : ' - verdächtig: ' . implode(' | ', $badSource));
+    if (!$ok) { $failures++; }
+
+    // Deutsch darf sich nicht selbst widersprechen: gleiche Platzhalter wie im Schlüssel
+    $badPh = [];
+    foreach ($loc ?? [] as $en => $de) {
+        preg_match_all('/%(?:\d\$)?[sd%]/', $en, $a);
+        preg_match_all('/%(?:\d\$)?[sd%]/', $de, $b);
+        $x = $a[0]; $y = $b[0]; sort($x); sort($y);
+        if ($x !== $y && $en !== $de) { $badPh[] = mb_substr($en, 0, 50); }
+    }
+    $ok = count($badPh) === 0;
+    printf("%s Zweisprachigkeit %s: Platzhalter (%%s/%%d) in Englisch und Deutsch gleich%s\n", $ok ? 'PASS' : 'FAIL', $label, $ok ? '' : ' - abweichend: ' . implode(' | ', $badPh));
+    if (!$ok) { $failures++; }
+}
+
+// Kachel-Token: Übersetzungen stehen in HTML UND in JavaScript-Zeichenketten -> keine Anführungszeichen,
+// Backslashes, Backticks, Zeilenumbrüche oder HTML-Tags (sonst bricht die Kachel nach der Übersetzung).
+$tileLoc = json_decode((string) file_get_contents(__DIR__ . '/../StromGedachtTile/locale.json'), true)['translations']['de'];
+preg_match_all('/\{\{t:(.*?)\}\}/u', (string) file_get_contents(__DIR__ . '/../StromGedachtTile/module.html'), $tokens);
+$badTok = [];
+foreach (array_unique($tokens[1]) as $k) {
+    foreach ([$k, $tileLoc[$k] ?? ''] as $variant) {
+        if (preg_match('/[\'"\\\\`\r\n]|<[a-zA-Z\/!]|\$\{/', $variant) === 1) { $badTok[] = mb_substr($k, 0, 40); }
+    }
+}
+$ok = count($badTok) === 0 && count($tokens[1]) > 0;
+printf("%s Zweisprachigkeit Kachel: %d Token ohne Zeichen, die HTML/JavaScript brechen%s\n", $ok ? 'PASS' : 'FAIL', count(array_unique($tokens[1])), $ok ? '' : ' - kritisch: ' . implode(' | ', $badTok));
+if (!$ok) { $failures++; }
+
+// Englisch: die ausgelieferten Formulare und die Kachel enthalten kein Deutsch
+$GLOBALS['__lang'] = 'en';
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
+$enWidget = new StromGedachtWidget($noSourceProps);
+$enWidget->Create();
+$enWidgetForm = consoleForm($enWidget, $enWidget->GetConfigurationForm());
+$enTile = new StromGedachtTile($tileBase);
+$enTile->Create();
+$enTileForm = consoleForm($enTile, $enTile->GetConfigurationForm());
+$flatten = function ($node) use (&$flatten): array {
+    $out = [];
+    if (is_array($node)) {
+        foreach ($node as $k => $v) {
+            if (is_string($v) && in_array($k, ['caption', 'label', 'suffix', 'prefix'], true)) { $out[] = $v; } else { $out = array_merge($out, $flatten($v)); }
+        }
+    }
+    return $out;
+};
+foreach (['Widget' => $enWidgetForm, 'Kachel' => $enTileForm] as $label => $form) {
+    $texts = $flatten($form);
+    $bad = [];
+    foreach ($texts as $t) {
+        if (preg_match($germanWords, str_replace($productWords, '', $t)) === 1) { $bad[] = mb_substr($t, 0, 60); }
+    }
+    $ok = count($texts) > 10 && count($bad) === 0;
+    printf("%s Englisch: Formular %s (%d Texte) ohne deutsche Reste%s\n", $ok ? 'PASS' : 'FAIL', $label, count($texts), $ok ? '' : ' - gefunden: ' . implode(' | ', $bad));
+    if (!$ok) { $failures++; }
+}
+
+// Kachel in beiden Sprachen: Token ersetzt, Sprache folgt Symcon
+$tw = makeTestWidget('Messung', ['State' => 1, 'GSI' => 70.0, 'ECSignal' => 2, 'ECShare' => 40.5]);
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$tw->InstanceID];
+foreach (['en' => ['Edit rule', 'Updated:'], 'de' => ['Regel bearbeiten', 'Aktualisiert:']] as $lang => $expect) {
+    $GLOBALS['__lang'] = $lang;
+    $t = new StromGedachtTile($tileBase);
+    $t->Create();
+    $html = (string) $t->GetVisualizationTile();
+    $ok = strpos($html, '{{t:') === false && strpos($html, $expect[0]) !== false && strpos($html, $expect[1]) !== false;
+    printf("%s Kachel (%s): Token ersetzt, Texte in der Symcon-Sprache\n", $ok ? 'PASS' : 'FAIL', $lang);
+    if (!$ok) { $failures++; }
+}
+
+// Spalten/GetState in beiden Sprachen: Bezeichnungen und Dezimalzeichen folgen der Sprache
+$ref = new ReflectionMethod(StromGedachtTile::class, 'BuildColumns');
+$GLOBALS['__lang'] = 'en';
+$t = new StromGedachtTile($tileBase);
+$t->Create();
+$colsEn = $ref->invoke($t, $tw->InstanceID);
+$GLOBALS['__lang'] = 'de';
+$colsDe = $ref->invoke($t, $tw->InstanceID);
+$ok = ($colsEn[0]['label'] ?? '') === 'Green' && ($colsDe[0]['label'] ?? '') === 'Grün'
+    && strpos((string) ($colsEn[2]['text'] ?? ''), 'renewable share: 40.5 %') !== false
+    && strpos((string) ($colsDe[2]['text'] ?? ''), 'EE-Anteil: 40,5 %') !== false;
+printf("%s Kachel-Spalten: Ampel-Bezeichnung und Dezimalzeichen folgen der Sprache (en: %s | de: %s)\n", $ok ? 'PASS' : 'FAIL', $colsEn[2]['text'] ?? '?', $colsDe[2]['text'] ?? '?');
+if (!$ok) { $failures++; }
+
+// Stolperstein 24: wenige Translate()-Aufrufe je Kachel-Lauf (kein Hunderter-Aufruf je Timer-/Tile-Lauf)
+$GLOBALS['__lang'] = 'de';
+$GLOBALS['__translateCalls'] = 0;
+$ref->invoke($t, $tw->InstanceID);
+$callsColumns = $GLOBALS['__translateCalls'];
+$GLOBALS['__translateCalls'] = 0;
+$start = microtime(true);
+$gs = new StromGedachtWidget(['EnableStromGedacht' => true, 'EnableGSI' => false, 'EnableEnergyCharts' => true, 'ZipCode' => '', 'UpdateInterval' => 300]);
+$gs->Create();
+$gs->status = IS_ACTIVE;
+$gs->SetValue('State', 1);
+$gs->SetValue('ECSignal', 2);
+$gs->SetValue('ECShare', 40.5);
+$gs->GetState();
+$callsState = $GLOBALS['__translateCalls'];
+$ok = $callsColumns <= 12 && $callsState <= 12;
+printf("%s Stolperstein 24: Translate()-Aufrufe je Lauf klein (Kachel-Spalten %d, GetState %d, <= 12)\n", $ok ? 'PASS' : 'FAIL', $callsColumns, $callsState);
+if (!$ok) { $failures++; }
+$GLOBALS['__lang'] = 'de';
 
 exit($failures === 0 ? 0 : 1);

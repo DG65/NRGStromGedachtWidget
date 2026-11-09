@@ -1,44 +1,41 @@
 # Hinweise für die Arbeit an diesem Repository
 
-## Sprachregel: alles Nutzersichtbare auf Deutsch
+## Sprachregel: zweisprachig Englisch/Deutsch (seit 1.10.0)
 
-Verbindliche Verbund-Regel (angeordnet von Dietmar am 22.07.2026, gilt für alle Module des
-**NRG-Stack** — der Produktname des DG65-Modulverbunds): **keine englischen Sätze/Ausdrücke und
-keine vermeidbaren Anglizismen** in allem, was der Nutzer zu sehen bekommt.
+Die frühere Regel "alles Nutzersichtbare auf Deutsch" (Dietmar, 22.07.2026) ist mit der
+Zweisprachigkeit abgelöst (EMS-Auftrag 05.11.2026, SUITE.md Konventionen Punkt 9, Store-Prüfliste
+25-29). Maßgeblich ist jetzt:
 
-Betroffen sind:
-
-- Formularbeschriftungen (`caption` in `form.json`), Hinweis- und Warntexte, Bestätigungsdialoge
-- Fehler- und Statusmeldungen, Rückgabe-Texte (z. B. `reason`-Felder eines Ergebnis-Arrays)
-- `SendDebug`-/`LogMessage`-Ausgaben, Variablen- und Profilnamen
-- Texte in der Kachel (`StromGedachtTile/module.html`), README, CHANGELOG
-
-Vermeidbare Anglizismen ersetzen: Dry-Run → Probelauf, Link → Verknüpfung, Event → Ereignis,
-Button → Schaltfläche, Checkliste → Prüfliste, Scan/scannen → Suche/suchen,
-Token → Zugangsschlüssel.
-
-**Faustregel:** eindeutschen, wo es das Verständnis verbessert; stehen lassen, wo der englische
-Begriff der Fachbegriff oder ein Produktname **ist**. Hier stehen bleiben daher u. a.:
-GrünstromIndex, Energy-Charts, StromGedacht (Produktnamen), API, HTTP, Debug (so heißt das
-Fenster in der IPS-Konsole), WebFront.
-
-**Beim Ersetzen die Grammatik prüfen** — ein Wort-für-Wort-Ersatz bricht Sätze, sobald sich das
-Genus ändert (aus „der Button" wird „**die** Schaltfläche", nicht „der Schaltfläche"). Also nie
-blind `replace_all`, sondern den Diff durchsehen.
-
-**Ausgenommen** (bleibt englisch, weil Umbenennen Verträge bricht):
-
-- Bezeichner im Code: Klassen-, Methoden-, Variablen-, Property- und vor allem **Ident-Namen**.
-  Konkret hier: `State`, `GSI`, `ECSignal`, `ECShare`, `Text`, `Updated`, `Widget`.
-  **Idents sind API und werden nie umbenannt** (Verbund-Konvention).
-- Feststehende IP-Symcon-/Technikbegriffe (`SelectVariable`, `WebFront`, Modbus TCP, HTMLBox …)
-  und Formularelement-Typen (`"type": "Button"` ist ein Bezeichner, kein Anzeigetext).
-- API-Feldnamen der Gegenstelle (`state`, `forecast`, `unix_seconds`, `signal`, `share` …).
-- Der Modulname „StromGedacht Widget" selbst (Store-Name, Vertrag).
-
-Für den geplanten `SGW_GetState()`-Vertrag heißt das: Feldnamen englisch
-(`state`, `label`, `gsi`, `ecSignal`, `ecShare`, `updated`), das `label`-**Feld** aber mit
-deutschem Anzeigetext füllen.
+- **Quelltext englisch, Deutsch in `locale.json`** (je Modul: `StromGedachtWidget/locale.json`,
+  `StromGedachtTile/locale.json`, Format `{"translations":{"de":{"English":"Deutsch"}}}`).
+  Neue Texte immer mit englischem Quelltext und deutschem Eintrag anlegen; `php tests/smoke.php`
+  prüft, dass jeder Schlüssel in `locale.json` steht, die Schlüssel englisch sind und die
+  Platzhalter (`%s`/`%d`) in beiden Sprachen übereinstimmen.
+- **Formularbeschriftungen** (`caption`, `label`, `suffix`, Options-Texte in `form.json` und in
+  PHP gebauten Formularen) bleiben einfacher englischer Quelltext - die Konsole übersetzt sie
+  selbst (Punkt 25). Keine eigene Übersetzungsschleife über das Formular bauen.
+- **`$this->Translate()`** (mit `sprintf`) nur für Texte mit eingesetzten Werten sowie Variablen-
+  und Profilnamen, Meldungen/Rückgabetexte, Debug-Texte, Kachel-Inhalt, Statuszeilen und
+  Listenzellen. `onClick`-Texte werden nicht übersetzt - dort sprachneutral bleiben.
+- **Kachel-HTML:** Texte als `{{t:Englischer Schlüssel}}`-Token; `GetVisualizationTile()` ersetzt
+  sie einmal je Laden. Übersetzungen dürfen keine Anführungszeichen, Backslashes, Backticks
+  oder HTML-Tags enthalten (stehen auch in JavaScript-Zeichenketten; der Test prüft das).
+- **Stolperstein 24:** nicht hunderte `Translate()`-Aufrufe je Timer-/Kachel-Lauf; der Test
+  begrenzt die Anzahl (derzeit <= 12).
+- **Dezimalzeichen** über `formatDecimal()` (`Translate('decimal comma') === ','`), nie
+  `number_format(..., ',', '.')` fest verdrahten.
+- **Idents sind API und werden nie umbenannt** (Verbund-Konvention). Konkret hier: `State`, `GSI`,
+  `ECSignal`, `ECShare`, `Text`, `Updated`, `Widget`. Ebenso Klassen-, Methoden-, Property- und
+  Funktionsnamen, Formularelement-Typen, API-Feldnamen der Gegenstellen sowie die Schlüssel der
+  Verträge `SGW_GetState()`/`SGW_GetForecast()` (`state`, `label`, `gsi`, `ecSignal`, `ecShare`,
+  `updated`); nur das Anzeigefeld `label` folgt der Sprache.
+- **Produktnamen bleiben stehen:** GrünstromIndex, Energy-Charts, StromGedacht, Symcon, WebFront,
+  API, HTTP. "IP-Symcon" ist veraltet - überall "Symcon" schreiben.
+- **Deutsche Texte:** weiterhin keine vermeidbaren Anglizismen (Probelauf statt Dry-Run,
+  Verknüpfung statt Link, Ereignis statt Event, Schaltfläche statt Button, Prüfliste statt
+  Checkliste, Suche statt Scan); bei Ersetzungen Grammatik und Genus prüfen, nie blind
+  `replace_all`.
+- Der Modulname "StromGedacht Widget" selbst ist Store-Name und Vertrag und wird nicht übersetzt.
 
 ## Vertragsversionierung (Verbund-Konvention, 23.07.2026)
 

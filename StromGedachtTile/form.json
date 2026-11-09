@@ -3,64 +3,64 @@
         {
             "type": "ExpansionPanel",
             "name": "DocPanel",
-            "caption": "📖 Dokumentation & Hilfe",
+            "caption": "📖 Documentation & help",
             "expanded": false,
             "items": [
                 {
                     "type": "Label",
-                    "caption": "── Funktionsweise ──"
+                    "caption": "── How it works ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Kachel ist eine eigenständige Instanz für die Visualisierung und von der Datenverbindung getrennt: Sie liest ihre Werte aus einer StromGedachtWidget-Instanz und aktualisiert sich sofort, wenn sich dort etwas ändert. Gibt es genau eine StromGedachtWidget-Instanz, wird sie automatisch als Quelle erkannt – nur bei mehreren musst du unten manuell wählen. Angezeigt wird nur, was in der Quelle aktiviert ist (StromGedacht, GrünstromIndex, Energy-Charts)."
+                    "caption": "The tile is a standalone instance for the visualization, separate from the data connection: it reads its values from a StromGedachtWidget instance and updates immediately when something changes there. If there is exactly one StromGedachtWidget instance, it is detected automatically as the source – only with several do you have to choose manually below. Only what is enabled in the source is shown (StromGedacht, GrünstromIndex, Energy-Charts)."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Darstellung ──"
+                    "caption": "── Display ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Ampelfarben (Supergrün/Grün/Gelb/Orange/Rot) gelten einheitlich für alle drei Datenquellen. Flächen-, Text- und Schriftoptionen passen die Kachel an deine Visualisierung an; ohne eigene Angabe folgt die Kachel dem hellen/dunklen Design des Endgeräts. Der Kachelname kann automatisch von der Quelle übernommen werden. Ein Tap auf das 🔄-Symbol aktualisiert die Quelle sofort."
+                    "caption": "The traffic-light colors (super green/green/yellow/orange/red) apply uniformly to all three data sources. Surface, text and font options adapt the tile to your visualization; without your own setting the tile follows the light/dark design of the device. The tile name can be taken over from the source automatically. A tap on the 🔄 symbol updates the source immediately."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Automationen ──"
+                    "caption": "── Automations ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Mit 'Automationen anzeigen' verwaltet die Kachel die Wenn→Dann-Regeln der StromGedachtWidget-Quelle vollständig: '+ Neue Regel' legt eine Regel an, ✎ bearbeitet, der Papierkorb löscht (mit Rückfrage), der Schalter aktiviert/deaktiviert. Im Editor werden als Ziel schaltbare Variablen (mit Aktion) angeboten – per Suchfeld filterbar; bei 'Wert setzen' erscheinen die im Profil/der Darstellung definierten Werte als Auswahlliste. Ist die Kachel mehrfach verlinkt, wirken alle Änderungen überall auf dieselben Regeln."
+                    "caption": "With 'Show automations' the tile fully manages the If→Then rules of the StromGedachtWidget source: '+ New rule' creates a rule, ✎ edits, the trash can deletes (with confirmation), the switch enables/disables. In the editor, switchable variables (with an action) are offered as targets – filterable by search field; for 'Set value' the values defined in the profile/presentation appear as a selection list. If the tile is linked several times, all changes act on the same rules everywhere."
                 },
                 {
                     "type": "Label",
-                    "caption": "Die Schaltfläche 'Farben & Schrift auf Standard zurücksetzen' ändert nur das offene Formular – gespeichert wird erst mit 'Änderungen übernehmen'."
+                    "caption": "The button 'Reset colors & font to default' only changes the open form – it is saved only with 'Apply changes'."
                 },
                 {
                     "type": "Label",
-                    "caption": "── Weitere Hilfe ──"
+                    "caption": "── More help ──"
                 },
                 {
                     "type": "Label",
-                    "caption": "Ausführliche Dokumentation: github.com/DG65/NRGStromGedachtWidget."
+                    "caption": "Detailed documentation: github.com/DG65/NRGStromGedachtWidget."
                 },
                 {
                     "type": "Label",
-                    "caption": "Der Button '🔄 Übernehmen erzwingen' ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst – praktisch nach einem Modul-Update, falls die Kachel den neuen Code nicht von selbst übernimmt."
+                    "caption": "The '🔄 Force apply' button calls IPS_ApplyChanges() directly, without you having to change anything in the form first – handy after a module update if the tile does not pick up the new code on its own."
                 }
             ]
         },
         {
             "type": "Label",
-            "caption": "Eigenständige Ampel-Kachel für StromGedachtWidget."
+            "caption": "Standalone traffic-light tile for StromGedachtWidget."
         },
         {
             "type": "Label",
             "name": "SourceStatus",
-            "caption": "Datenquelle wird ermittelt ..."
+            "caption": "Detecting data source ..."
         },
         {
             "type": "SelectInstance",
             "name": "SourceInstance",
-            "caption": "Datenquelle (leer = automatisch erkennen)",
+            "caption": "Data source (empty = detect automatically)",
             "onChange": "SGWTILE_OnChangeSource($id, $SourceInstance);",
             "validModules": [
                 "{D5A8C3A1-2222-4A55-8888-123456789003}"
@@ -69,27 +69,27 @@
         {
             "type": "CheckBox",
             "name": "AdoptWidgetName",
-            "caption": "Kachelname automatisch von der Quelle übernehmen"
+            "caption": "Take over the tile name from the source automatically"
         },
         {
             "type": "ExpansionPanel",
             "name": "PanelColors",
-            "caption": "🎨 Ampelfarben",
+            "caption": "🎨 Traffic-light colors",
             "items": [
                 {
                     "type": "SelectColor",
                     "name": "ColorSuperGreen",
-                    "caption": "Supergrün"
+                    "caption": "Super green"
                 },
                 {
                     "type": "SelectColor",
                     "name": "ColorGreen",
-                    "caption": "Grün"
+                    "caption": "Green"
                 },
                 {
                     "type": "SelectColor",
                     "name": "ColorYellow",
-                    "caption": "Gelb"
+                    "caption": "Yellow"
                 },
                 {
                     "type": "SelectColor",
@@ -99,49 +99,49 @@
                 {
                     "type": "SelectColor",
                     "name": "ColorRed",
-                    "caption": "Rot"
+                    "caption": "Red"
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
             "name": "PanelSurface",
-            "caption": "🖌️ Flächen & Text",
+            "caption": "🖌️ Surfaces & text",
             "items": [
                 {
                     "type": "SelectColor",
                     "name": "ColorBackground",
-                    "caption": "Hintergrund"
+                    "caption": "Background"
                 },
                 {
                     "type": "SelectColor",
                     "name": "ColorBox",
-                    "caption": "Kacheln/Boxen"
+                    "caption": "Tiles/boxes"
                 },
                 {
                     "type": "SelectColor",
                     "name": "ColorText",
-                    "caption": "Text (Werte)"
+                    "caption": "Text (values)"
                 },
                 {
                     "type": "SelectColor",
                     "name": "ColorTextMuted",
-                    "caption": "Text (Beschriftungen)"
+                    "caption": "Text (labels)"
                 }
             ]
         },
         {
             "type": "ExpansionPanel",
             "name": "PanelFont",
-            "caption": "🔤 Schrift",
+            "caption": "🔤 Font",
             "items": [
                 {
                     "type": "Select",
                     "name": "FontFamily",
-                    "caption": "Schriftart",
+                    "caption": "Font family",
                     "options": [
                         {
-                            "caption": "System (Standard)",
+                            "caption": "System (default)",
                             "value": "system"
                         },
                         {
@@ -161,11 +161,11 @@
                             "value": "trebuchet"
                         },
                         {
-                            "caption": "Georgia (Serif)",
+                            "caption": "Georgia (serif)",
                             "value": "georgia"
                         },
                         {
-                            "caption": "Courier New (Monospace)",
+                            "caption": "Courier New (monospace)",
                             "value": "courier"
                         }
                     ]
@@ -173,7 +173,7 @@
                 {
                     "type": "NumberSpinner",
                     "name": "FontScale",
-                    "caption": "Schriftgröße (Faktor)",
+                    "caption": "Font size (factor)",
                     "digits": 2,
                     "minimum": 0.5,
                     "maximum": 2.5,
@@ -184,31 +184,31 @@
         {
             "type": "CheckBox",
             "name": "ShowAutomations",
-            "caption": "Automationen anzeigen (Wenn → Dann-Regeln der Quelle verwalten)"
+            "caption": "Show automations (manage the source's If → Then rules)"
         },
         {
             "type": "Button",
-            "caption": "Farben & Schrift auf Standard zurücksetzen",
+            "caption": "Reset colors & font to default",
             "onClick": "SGWTILE_ResetStyle($id);"
         }
     ],
     "actions": [
         {
             "type": "Button",
-            "caption": "🔄 Übernehmen erzwingen (ohne Formularänderung)",
-            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges() ausgeführt.';"
+            "caption": "🔄 Force apply (without changing the form)",
+            "onClick": "IPS_ApplyChanges($id); echo '✅ ApplyChanges()';"
         }
     ],
     "status": [
         {
             "code": 102,
             "icon": "active",
-            "caption": "Aktiv"
+            "caption": "Active"
         },
         {
             "code": 104,
             "icon": "inactive",
-            "caption": "Keine Datenquelle gefunden – bitte manuell wählen"
+            "caption": "No data source found – please choose manually"
         }
     ]
 }

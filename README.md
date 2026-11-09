@@ -1,15 +1,17 @@
 # StromGedachtWidget
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.9.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.10.0-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml)
 [![PayPal](https://img.shields.io/badge/PayPal-Me-blue?logo=paypal)](https://paypal.me/DietmarGureth)
 
+🇬🇧 [English version](README.en.md)
+
 > Teil des **NRG-Stack** — das Architektur-/Verbund-Manifest SUITE.md ist seit 31.08.2026 nicht mehr öffentlich (liegt nur noch lokal bei DG65).
 
-IP-Symcon-Modul, das Stromampel-Signale aus bis zu drei Quellen parallel abruft und nebeneinander als Ampel-Widget darstellt:
+Symcon-Modul, das Stromampel-Signale aus bis zu drei Quellen parallel abruft und nebeneinander als Ampel-Widget darstellt:
 
 - **[StromGedacht](https://www.stromgedacht.de)** (TransnetBW) — *Netz-Signal*: Wann ist es netzdienlich, Verbrauch zu verschieben? Abdeckung: Baden-Württemberg sowie Pilotgebiete (z. B. Teile Niedersachsens).
 - **[GrünstromIndex](https://gruenstromindex.de)** (Corrently/STROMDAO) — *Öko-Signal*: Wie grün ist der Strommix in der Region (0–100)? Abdeckung: ganz Deutschland, per Postleitzahl.
@@ -18,6 +20,10 @@ IP-Symcon-Modul, das Stromampel-Signale aus bis zu drei Quellen parallel abruft 
 > **Hinweis:** Netz-Signal und Öko-Signal sind unterschiedliche Größen. StromGedacht meldet drohende Netzengpässe (Redispatch), GrünstromIndex und Energy-Charts bewerten den Anteil erneuerbarer Energien. Ein grüner Strommix kann mit angespanntem Netz zusammenfallen — und umgekehrt. Genau deshalb zeigt das Widget alle aktivierten Quellen nebeneinander.
 
 Jede Quelle lässt sich einzeln aktivieren. Liefert eine Quelle keine Daten (z. B. weil die Postleitzahl außerhalb des StromGedacht-Gebiets liegt), zeigt ihre Spalte im Widget „Keine Daten" mit grauer LED — die übrigen Quellen laufen normal weiter.
+
+## Sprache
+
+Das Modul ist zweisprachig (Englisch/Deutsch). Formular, Meldungen, Statustexte, Variablennamen und die Kachel folgen der Symcon-Sprache. Bezeichner (Variablen-Idents, Eigenschaftsnamen, Funktionsnamen und die Schlüssel des `SGW_GetState()`-Vertrags) sind sprachunabhängig und ändern sich nie; nur Anzeigetexte wie das Feld `label` folgen der Sprache.
 
 ## Zustände je Datenquelle
 
@@ -50,13 +56,13 @@ Die Werte entsprechen jeweils 1:1 der Quell-API; jede Quelle nutzt ihr eigenes V
 
 ## Voraussetzungen
 
-- IP-Symcon ab Version 9.0
+- Symcon ab Version 9.0
 - Internetzugriff auf die jeweilige API
 - Für StromGedacht und GrünstromIndex: eine deutsche Postleitzahl (StromGedacht nur im abgedeckten Netzgebiet)
 
 ## Installation
 
-1. In der IP-Symcon-Konsole die **Modulverwaltung** öffnen
+1. In der Symcon-Konsole die **Modulverwaltung** öffnen
 2. Repository hinzufügen: `https://github.com/DG65/NRGStromGedachtWidget`
 3. Instanz **StromGedacht Widget** anlegen
 4. Optional zusätzlich eine Instanz **StromGedachtTile** anlegen, wenn eine native, grafisch einstellbare Kachel im WebFront gewünscht ist (siehe [Kachel](#kachel))
@@ -138,6 +144,7 @@ SGW_GetState(int $InstanzID): array
 // -> ['contractVersion' => '1.0', 'state' => int|null, 'label' => string,
 //     'gsi' => float|null, 'ecSignal' => int|null, 'ecShare' => float|null, 'updated' => int]
 // Felder sind null, wenn die jeweilige Quelle in dieser Instanz nicht aktiviert ist.
+// Die Feldnamen sind in jeder Sprache gleich; 'label' ist Anzeigetext und folgt der Symcon-Sprache.
 
 // Vorschau im Zeitraum [$Von, $Bis] (Unix-Timestamps), je aktivierter Quelle eine Liste
 SGW_GetForecast(int $InstanzID, int $Von, int $Bis): array

@@ -25,27 +25,14 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.8.4';
+    private const MODULE_VERSION = '1.10.0';
     private const NEWS_ITEMS = [
-        'Zuverlässigerer Abruf: Die StromGedacht-API antwortete gelegentlich (ca. jeder sechste Abruf) in einem Format, das nicht gelesen werden konnte - die Ampel blieb dann bis zum nächsten Abruf leer. Das Modul fordert die Antwort jetzt ausdrücklich unkomprimiert an.',
-        'Im Bereich "Automationen" steht jetzt immer eine Statuszeile zur EMS-Erkennung (✅ erkannt / ℹ️ kein EMS im System / ⚠️ Abfrage fehlgeschlagen) - vorher war nur eine Kollisionswarnung sichtbar, sonst nichts.',
-        'Neues Panel "🧡 Über dieses Modul" (Lizenz/Spenden) ganz unten im Formular. Der Forum-Hinweis ist jetzt ein eigenes, dismissibles Panel "💬 Feedback im Symcon-Forum" statt der alten Zeile.',
-        'Hast du mehrere StromGedacht-Instanzen (z. B. verschiedene PLZ/Regionen)? "Wozu dieses Modul?"/"Was ist Neu?"/der Forum-Hinweis müssen jetzt nicht mehr an jeder Instanz einzeln weggeklickt werden — ein Klick an einer genügt für alle.',
-        'Fix: Der Konsolen-Statustext bei "keine Datenquelle aktiviert" zeigte fälschlich "Bitte Postleitzahl konfigurieren" an (beide Fälle teilen sich seit dem letzten Update denselben Statuscode 104) — jetzt ein gemeinsamer, zutreffender Text für beide Fälle.',
-        '👋 Neues Panel "Wozu dieses Modul?" ganz oben im Formular — kurze Erklärung für den Einstieg, einmalig ausblendbar.',
-        'Eine Instanz ohne aktivierte Datenquelle zeigt jetzt korrekt "inaktiv" statt eines Fehlerstatus — wichtig für automatische Systemprüfungen im Verbund.',
-        '🔧 Interne Robustheit: eingelesene Formularwerte werden vor der Weiterverarbeitung konsequent typgeprüft (verhindert seltene Abstürze während eines Modul-Neuladens).',
-        'Manuelle Aktualisierungen (Button, Kachel-Refresh) sind jetzt auf eine alle 30 Sekunden begrenzt — schützt die drei kostenlosen Dritt-APIs vor versehentlichem Mehrfach-Antippen.',
-        'Sicherheitsfix (StromGedachtTile): Die Automationen-Verwaltung wird jetzt auch serverseitig gesperrt, wenn "Automationen anzeigen" deaktiviert ist — vorher nur clientseitig ausgeblendet.',
-        'Neuer Button "🔄 Übernehmen erzwingen" ruft IPS_ApplyChanges() direkt auf, ohne dass du vorher etwas im Formular ändern musst.',
-        'Die Schaltfläche "Jetzt aktualisieren" zeigt jetzt eine sichtbare Rückmeldung (z. B. "✅ 3 von 3 Quelle(n) aktualisiert"), ohne dass du das Formular neu öffnen musst.',
-        '🆕 SGW_GetForecast() liefert jetzt auch Vorschau-Einträge für GrünstromIndex (source: "gsi", stündliches Raster) und Energy-Charts (source: "energycharts", 15-Minuten-Raster, begrenztes Zukunftsfenster) — nicht mehr nur StromGedacht.',
-        'Formular macht jetzt deutlich, dass StromGedacht nur Baden-Württemberg + Pilotgebiete abdeckt (GrünstromIndex/Energy-Charts bundesweit) und dass "Wenn Datenpunkt" nur aktivierte Quellen zeigt.',
-        'Texte der StromGedacht-Ampel an die offizielle TransnetBW-App/Website angeglichen (Wiedererkennbarkeit für Nutzer, die die App bereits kennen).',
-        '🆕 Automationen warnen jetzt, wenn ihre Zielvariable aktuell auch vom EMS gesteuert wird (Zwei-Regler-Kollision) — Hinweis im Formular und ⚠️-Symbol in der Kachel.',
-        'Neue Funktionen SGW_GetState()/SGW_GetForecast() für andere Module des NRG-Stack (z. B. EMS) — Grundlage für automatische netzdienliche Steuerung.',
-        'Lizenzwechsel: PolyForm Noncommercial 1.0.0 statt MIT — private/nicht-kommerzielle Nutzung bleibt frei, gewerbliche Nutzung ist ab jetzt lizenzpflichtig.',
-        'Teil des NRG-Stack (DG65-Modulverbund) — siehe SUITE.md, welche Modulstände zusammenpassen.'
+        'Now bilingual: form, messages, status texts and variable names are available in English and German and follow the Symcon language.',
+        'The traffic-light labels returned by SGW_GetState() ("label") and shown in the tile now follow the language as well. The field names are unchanged.',
+        'Technical: the "don\'t show again" state is now synchronized with other StromGedacht instances when the form is opened, no longer while changes are applied.',
+        'More reliable retrieval: the StromGedacht API occasionally (about every sixth request) answered in a format that could not be read, leaving the traffic light empty until the next retrieval. The module now explicitly requests the response uncompressed.',
+        'Retrieval hardened further: if the StromGedacht API still answers in a compressed format that cannot be read (rare), the module now asks again immediately with gzip, which it can read - no more empty traffic light until the next retrieval.',
+        'Manual updates (button, tile refresh) are now limited to one every 30 seconds - this protects the three free third-party APIs from accidental repeated tapping.'
     ];
 
     // Eigene Modul-GUID (= module.json "id") für die Geschwister-Instanz-Suche beim
@@ -66,22 +53,22 @@ class StromGedachtWidget extends IPSModule
     ];
 
     private const SG_LABELS = [
-        -1 => 'Supergrün',
-        1  => 'Grün',
-        2  => 'Gelb',
+        -1 => 'Super green',
+        1  => 'Green',
+        2  => 'Yellow',
         3  => 'Orange',
-        4  => 'Rot'
+        4  => 'Red'
     ];
 
     // Wortwahl an die offizielle StromGedacht-App/Website (TransnetBW) angeglichen
     // (Stand 2026-07-27, www.stromgedacht.de) - Wiedererkennbarkeit für Nutzer, die die
     // App bereits kennen.
     private const SG_TEXTS = [
-        -1 => 'Strom bevorzugt jetzt nutzen – besonders viel erneuerbare Energie im Netz',
-        1  => 'Strom wie gewohnt nutzen – Normalbetrieb',
-        2  => 'Angespannte Netzsituation',
-        3  => 'Verbrauch reduzieren – hilft, Kosten und CO₂ zu sparen',
-        4  => 'Verbrauch vermeiden – hilft, einen Strommangel zu verhindern'
+        -1 => 'Use electricity preferably now – especially a lot of renewable energy in the grid',
+        1  => 'Use electricity as usual – normal operation',
+        2  => 'Strained grid situation',
+        3  => 'Reduce consumption – helps to save costs and CO₂',
+        4  => 'Avoid consumption – helps to prevent an electricity shortage'
     ];
 
     // Signale laut Energy-Charts API:
@@ -94,17 +81,17 @@ class StromGedachtWidget extends IPSModule
     ];
 
     private const EC_LABELS = [
-        -1 => 'Rot (Netzengpass)',
-        0  => 'Rot',
-        1  => 'Gelb',
-        2  => 'Grün'
+        -1 => 'Red (grid bottleneck)',
+        0  => 'Red',
+        1  => 'Yellow',
+        2  => 'Green'
     ];
 
     private const EC_TEXTS = [
-        -1 => 'Netzengpass – Verbrauch reduzieren',
-        0  => 'Niedriger Anteil erneuerbarer Energien',
-        1  => 'Durchschnittlicher Anteil erneuerbarer Energien',
-        2  => 'Hoher Anteil erneuerbarer Energien'
+        -1 => 'Grid bottleneck – reduce consumption',
+        0  => 'Low share of renewable energy',
+        1  => 'Average share of renewable energy',
+        2  => 'High share of renewable energy'
     ];
 
     public function Create()
@@ -142,19 +129,19 @@ class StromGedachtWidget extends IPSModule
         // Profile bewusst getrennt je Datenquelle
         if (!IPS_VariableProfileExists('SGW.State')) {
             IPS_CreateVariableProfile('SGW.State', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileAssociation('SGW.State', -1, 'Supergrün', '', 0x00BFA5);
-            IPS_SetVariableProfileAssociation('SGW.State', 1, 'Grün', '', 0x00C853);
-            IPS_SetVariableProfileAssociation('SGW.State', 2, 'Gelb', '', 0xFFD600);
-            IPS_SetVariableProfileAssociation('SGW.State', 3, 'Orange', '', 0xFF6D00);
-            IPS_SetVariableProfileAssociation('SGW.State', 4, 'Rot', '', 0xD50000);
+            IPS_SetVariableProfileAssociation('SGW.State', -1, $this->Translate('Super green'), '', 0x00BFA5);
+            IPS_SetVariableProfileAssociation('SGW.State', 1, $this->Translate('Green'), '', 0x00C853);
+            IPS_SetVariableProfileAssociation('SGW.State', 2, $this->Translate('Yellow'), '', 0xFFD600);
+            IPS_SetVariableProfileAssociation('SGW.State', 3, $this->Translate('Orange'), '', 0xFF6D00);
+            IPS_SetVariableProfileAssociation('SGW.State', 4, $this->Translate('Red'), '', 0xD50000);
         }
 
         if (!IPS_VariableProfileExists('SGW.ECSignal')) {
             IPS_CreateVariableProfile('SGW.ECSignal', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileAssociation('SGW.ECSignal', -1, 'Rot (Netzengpass)', '', 0xD50000);
-            IPS_SetVariableProfileAssociation('SGW.ECSignal', 0, 'Rot', '', 0xD50000);
-            IPS_SetVariableProfileAssociation('SGW.ECSignal', 1, 'Gelb', '', 0xFFD600);
-            IPS_SetVariableProfileAssociation('SGW.ECSignal', 2, 'Grün', '', 0x00C853);
+            IPS_SetVariableProfileAssociation('SGW.ECSignal', -1, $this->Translate('Red (grid bottleneck)'), '', 0xD50000);
+            IPS_SetVariableProfileAssociation('SGW.ECSignal', 0, $this->Translate('Red'), '', 0xD50000);
+            IPS_SetVariableProfileAssociation('SGW.ECSignal', 1, $this->Translate('Yellow'), '', 0xFFD600);
+            IPS_SetVariableProfileAssociation('SGW.ECSignal', 2, $this->Translate('Green'), '', 0x00C853);
         }
 
         // Gemeinsames NRG-Stack-Profil für physikalische Grundgrößen (kein Eigentümer-Modul,
@@ -178,23 +165,18 @@ class StromGedachtWidget extends IPSModule
             return;
         }
 
-        // Vor der Bereitschaftsprüfung (die bei fehlender Quelle/PLZ früh zurückkehrt) -
-        // das Ausblenden-Teilen gilt unabhängig davon, ob diese Instanz schon fertig
-        // konfiguriert ist.
-        $this->AdoptDismissFromSibling();
-
         $sg = $this->ReadPropertyBoolean('EnableStromGedacht');
         $gsi = $this->ReadPropertyBoolean('EnableGSI');
         $ec = $this->ReadPropertyBoolean('EnableEnergyCharts');
 
         // Variablen je aktivierter Quelle pflegen (nicht benötigte werden entfernt)
-        $this->MaintainVariable('State', 'Ampel', VARIABLETYPE_INTEGER, 'SGW.State', 1, $sg);
-        $this->MaintainVariable('Text', 'Status Text', VARIABLETYPE_STRING, '', 2, $sg);
-        $this->MaintainVariable('GSI', 'GrünstromIndex', VARIABLETYPE_FLOAT, 'NRG.Percent', 3, $gsi);
-        $this->MaintainVariable('ECSignal', 'Stromampel', VARIABLETYPE_INTEGER, 'SGW.ECSignal', 4, $ec);
-        $this->MaintainVariable('ECShare', 'EE-Anteil', VARIABLETYPE_FLOAT, 'NRG.Percent', 5, $ec);
-        $this->MaintainVariable('Updated', 'Aktualisiert', VARIABLETYPE_INTEGER, '~UnixTimestamp', 6, true);
-        $this->MaintainVariable('Widget', 'Anzeige', VARIABLETYPE_STRING, '~HTMLBox', 7, true);
+        $this->MaintainVariable('State', $this->Translate('Traffic light'), VARIABLETYPE_INTEGER, 'SGW.State', 1, $sg);
+        $this->MaintainVariable('Text', $this->Translate('Status text'), VARIABLETYPE_STRING, '', 2, $sg);
+        $this->MaintainVariable('GSI', $this->Translate('GrünstromIndex'), VARIABLETYPE_FLOAT, 'NRG.Percent', 3, $gsi);
+        $this->MaintainVariable('ECSignal', $this->Translate('Electricity traffic light'), VARIABLETYPE_INTEGER, 'SGW.ECSignal', 4, $ec);
+        $this->MaintainVariable('ECShare', $this->Translate('Renewable share'), VARIABLETYPE_FLOAT, 'NRG.Percent', 5, $ec);
+        $this->MaintainVariable('Updated', $this->Translate('Updated'), VARIABLETYPE_INTEGER, '~UnixTimestamp', 6, true);
+        $this->MaintainVariable('Widget', $this->Translate('Display'), VARIABLETYPE_STRING, '~HTMLBox', 7, true);
 
         // Baseline ohne Auslösen: verhindert Fehlauslösung einer Regel direkt nach
         // dem Übernehmen, falls ihre Bedingung zufällig schon erfüllt ist
@@ -230,6 +212,11 @@ class StromGedachtWidget extends IPSModule
 
     public function GetConfigurationForm()
     {
+        // Abgleich des "nicht mehr anzeigen"-Stands mit Geschwister-Instanzen hier statt in
+        // ApplyChanges: Beim Neuladen von Modulen sind die anderen Instanzen evtl. noch nicht
+        // geladen (Symcon-Review Tessie 2.38.3, Store-Checkliste 27, SUITE.md).
+        $this->AdoptDismissFromSibling();
+
         $form = json_decode(file_get_contents(__DIR__ . '/form.json'), true);
         if (!is_array($form)) {
             $form = ['elements' => [], 'actions' => [], 'status' => []];
@@ -253,7 +240,7 @@ class StromGedachtWidget extends IPSModule
                     unset($col);
                 }
                 if (($element['name'] ?? '') === 'DocPanel') {
-                    $element['caption'] = '📖 Dokumentation & Hilfe (v' . self::MODULE_VERSION . ')';
+                    $element['caption'] = sprintf($this->Translate('📖 Documentation & help (v%s)'), self::MODULE_VERSION);
                 }
                 if (isset($element['items']) && is_array($element['items'])) {
                     $patch($element['items']);
@@ -283,7 +270,7 @@ class StromGedachtWidget extends IPSModule
         if (count($conflictNames) > 0) {
             $insertLines[] = [
                 'type'    => 'Label',
-                'caption' => '⚠️ Wird auch vom EMS gesteuert (Zwei-Regler-Kollision möglich): ' . implode(', ', $conflictNames)
+                'caption' => sprintf($this->Translate('⚠️ Also controlled by the EMS (two-controller collision possible): %s'), implode(', ', $conflictNames))
             ];
         }
         $warningInserted = false;
@@ -340,11 +327,11 @@ class StromGedachtWidget extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'PurposeIntroPanel', 'expanded' => true,
-            'caption' => '👋  Wozu dieses Modul?',
+            'caption' => '👋  What is this module for?',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Diese Instanz liest die StromGedacht-Netzampel (TransnetBW) sowie wahlweise den GrünstromIndex und das Energy-Charts-Signal aus und zeigt dir, wann Strom im Netz gerade besonders grün oder besonders knapp ist.'],
-                ['type' => 'Label', 'caption' => 'Damit kannst du selbst einfache Wenn→Dann-Regeln bauen (z. B. Warmwasser bei Supergrün einschalten) oder die Werte über SGW_GetState()/SGW_GetForecast() an ein Energiemanagement-Modul wie das NRG-Stack EMS weiterreichen, das komplexere Entscheidungen trifft.'],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckPurposeIntro($id);'],
+                ['type' => 'Label', 'caption' => 'This instance reads the StromGedacht grid traffic light (TransnetBW) and, optionally, the GrünstromIndex and the Energy-Charts signal, and shows you when electricity in the grid is particularly green or particularly scarce.'],
+                ['type' => 'Label', 'caption' => 'With it you can build simple If→Then rules yourself (e.g. switch on hot water at super green) or pass the values on via SGW_GetState()/SGW_GetForecast() to an energy management module such as the NRG-Stack EMS, which makes more complex decisions.'],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGW_AckPurposeIntro($id);'],
             ],
         ];
     }
@@ -362,12 +349,12 @@ class StromGedachtWidget extends IPSModule
         if ($this->ReadAttributeString('SeenNews') === self::MODULE_VERSION) {
             return null;
         }
-        $items = [['type' => 'Label', 'caption' => '🆕 Neu in diesem Modul — bitte kurz ansehen und ggf. die Einstellungen prüfen:']];
+        $items = [['type' => 'Label', 'caption' => $this->Translate('🆕 New in this module — please take a quick look and check your settings if necessary:')]];
         foreach (self::NEWS_ITEMS as $line) {
-            $items[] = ['type' => 'Label', 'caption' => '• ' . $line];
+            $items[] = ['type' => 'Label', 'caption' => '• ' . $this->Translate($line)];
         }
-        $items[] = ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckNews($id);'];
-        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => '🆕 Neu in Version ' . self::MODULE_VERSION, 'expanded' => true, 'items' => $items];
+        $items[] = ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGW_AckNews($id);'];
+        return ['type' => 'ExpansionPanel', 'name' => 'NewsPanel', 'caption' => sprintf($this->Translate('🆕 New in version %s'), self::MODULE_VERSION), 'expanded' => true, 'items' => $items];
     }
 
     public function AckNews(): void
@@ -385,11 +372,11 @@ class StromGedachtWidget extends IPSModule
         }
         return [
             'type' => 'ExpansionPanel', 'name' => 'ForumHintPanel', 'expanded' => true,
-            'caption' => '💬  Feedback im Symcon-Forum',
+            'caption' => '💬  Feedback in the Symcon forum',
             'items' => [
-                ['type' => 'Label', 'caption' => '⭐ Gefällt dir dieses Modul? Über eine Bewertung im Module Store oder eine Rückmeldung im Community-Thread freue ich mich!'],
-                ['type' => 'Button', 'caption' => 'Zum Forums-Thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
-                ['type' => 'Button', 'caption' => 'Verstanden – nicht mehr anzeigen', 'onClick' => 'SGW_AckForumHint($id);'],
+                ['type' => 'Label', 'caption' => '⭐ Do you like this module? I am happy about a rating in the Module Store or feedback in the community thread!'],
+                ['type' => 'Button', 'caption' => 'Go to the forum thread', 'onClick' => "echo '" . self::FORUM_THREAD_URL . "';", 'link' => true],
+                ['type' => 'Button', 'caption' => 'Got it – don\'t show again', 'onClick' => 'SGW_AckForumHint($id);'],
             ],
         ];
     }
@@ -421,14 +408,14 @@ class StromGedachtWidget extends IPSModule
     {
         return [
             'type' => 'ExpansionPanel', 'expanded' => false,
-            'caption' => '🧡  Über dieses Modul',
+            'caption' => '🧡  About this module',
             'items' => [
-                ['type' => 'Label', 'caption' => 'Entstanden aus echter Begeisterung für die eigene Anlage — und ein paar durchgetippten Abenden. Trotzdem: Software-Hobby hin oder her, das hier ist geistiges Eigentum und echte Arbeit steckt drin.'],
-                ['type' => 'Label', 'caption' => 'Lizenz: PolyForm Noncommercial 1.0.0 — privat und nicht-kommerziell frei nutzbar, für den gewerblichen Einsatz braucht es eine gesonderte Lizenz vom Rechteinhaber.'],
-                ['type' => 'Button', 'caption' => 'Lizenztext ansehen', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
-                ['type' => 'Label', 'caption' => 'Gewerbliche Nutzung oder Fragen zur Lizenz? Einfach melden: dietmar@gureth.eu'],
-                ['type' => 'Label', 'caption' => 'Gefällt dir das Modul und du möchtest trotzdem etwas dalassen? Über eine kleine Spende freue ich mich — völlig freiwillig, keine Gegenleistung nötig.'],
-                ['type' => 'Button', 'caption' => '☕  Spenden via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Born out of real enthusiasm for my own setup — and quite a few evenings of typing. Still: hobby software or not, this is intellectual property and real work went into it.'],
+                ['type' => 'Label', 'caption' => 'License: PolyForm Noncommercial 1.0.0 — free for private and non-commercial use; commercial use requires a separate license from the rights holder.'],
+                ['type' => 'Button', 'caption' => 'View license text', 'onClick' => "echo '" . self::LICENSE_URL . "';", 'link' => true],
+                ['type' => 'Label', 'caption' => 'Commercial use or questions about the license? Just get in touch: dietmar@gureth.eu'],
+                ['type' => 'Label', 'caption' => 'You like the module and would like to leave something anyway? I am happy about a small donation — completely voluntary, nothing required in return.'],
+                ['type' => 'Button', 'caption' => '☕  Donate via PayPal', 'onClick' => "echo '" . self::PAYPAL_URL . "';", 'link' => true],
             ],
         ];
     }
@@ -534,7 +521,7 @@ class StromGedachtWidget extends IPSModule
         $elapsed = time() - $lastAttempt;
         if ($lastAttempt > 0 && $elapsed < self::REFRESH_COOLDOWN_SECONDS) {
             $wait = self::REFRESH_COOLDOWN_SECONDS - $elapsed;
-            return '⏳ Gerade erst aktualisiert – bitte noch ' . $wait . ' Sekunde(n) warten (Schutz der kostenlosen Dritt-APIs vor zu häufigen Abrufen).';
+            return sprintf($this->Translate('⏳ Just updated – please wait %d more second(s) (protects the free third-party APIs from too frequent requests).'), $wait);
         }
         $this->WriteAttributeInteger('LastUpdateAttempt', time());
 
@@ -558,7 +545,7 @@ class StromGedachtWidget extends IPSModule
         $now = date('H:i:s');
 
         if (count($columns) === 0) {
-            return 'ℹ️ Keine Datenquelle aktiviert (' . $now . ' Uhr)';
+            return sprintf($this->Translate('ℹ️ No data source enabled (%s)'), $now);
         }
 
         if ($ok > 0) {
@@ -566,13 +553,13 @@ class StromGedachtWidget extends IPSModule
             // ausgefallene Quellen sind im Widget als "Keine Daten" sichtbar
             $this->SetStatus(IS_ACTIVE);
             $this->SetValue('Updated', time());
-            $result = '✅ ' . $ok . ' von ' . count($columns) . ' Quelle(n) aktualisiert (' . $now . ' Uhr)';
+            $result = sprintf($this->Translate('✅ %d of %d source(s) updated (%s)'), $ok, count($columns), $now);
         } elseif ($failed === 0 && $zipUnknown > 0) {
             $this->SetStatus(self::STATUS_ZIP_UNKNOWN);
-            $result = '⚠️ Für diese Postleitzahl liegen keine Daten vor (' . $now . ' Uhr)';
+            $result = sprintf($this->Translate('⚠️ No data available for this postal code (%s)'), $now);
         } else {
             $this->SetStatus(self::STATUS_API_ERROR);
-            $result = '❌ Keine aktivierte Quelle erreichbar (' . $now . ' Uhr)';
+            $result = sprintf($this->Translate('❌ No enabled source reachable (%s)'), $now);
         }
 
         $this->RenderWidget($columns);
@@ -609,7 +596,7 @@ class StromGedachtWidget extends IPSModule
         return [
             'contractVersion' => '1.0',
             'state'    => $state,
-            'label'    => $state !== null ? (self::SG_LABELS[$state] ?? 'Unbekannt') : 'StromGedacht deaktiviert',
+            'label'    => $state !== null ? $this->Translate(self::SG_LABELS[$state] ?? 'Unknown') : $this->Translate('StromGedacht disabled'),
             'gsi'      => $gsiRaw !== null ? (float) $gsiRaw : null,
             'ecSignal' => $ecSignalRaw !== null ? (int) $ecSignalRaw : null,
             'ecShare'  => $ecShareRaw !== null ? (float) $ecShareRaw : null,
@@ -662,7 +649,7 @@ class StromGedachtWidget extends IPSModule
         [$code, $body] = $this->HttpGet('https://api.stromgedacht.de/v1/statesRelative?zip=' . urlencode($zip) . '&hoursInFuture=' . $hoursInFuture);
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['states']) || !is_array($data['states'])) {
-            $this->SendDebug('GetForecast', 'StromGedacht: API nicht erreichbar oder ungültige Antwort', 0);
+            $this->SendDebug('GetForecast', 'StromGedacht: ' . $this->Translate('API unreachable or invalid response'), 0);
             return [];
         }
 
@@ -708,7 +695,7 @@ class StromGedachtWidget extends IPSModule
         [$code, $body] = $this->HttpGet('https://api.corrently.io/v2.0/gsi/prediction?zip=' . urlencode($zip));
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['forecast']) || !is_array($data['forecast'])) {
-            $this->SendDebug('GetForecast', 'GSI: API nicht erreichbar oder ungültige Antwort', 0);
+            $this->SendDebug('GetForecast', 'GSI: ' . $this->Translate('API unreachable or invalid response'), 0);
             return [];
         }
 
@@ -748,7 +735,7 @@ class StromGedachtWidget extends IPSModule
         [$code, $body] = $this->HttpGet('https://api.energy-charts.info/signal?country=de');
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['unix_seconds'], $data['signal']) || !is_array($data['unix_seconds']) || !is_array($data['signal'])) {
-            $this->SendDebug('GetForecast', 'Energy-Charts: API nicht erreichbar oder ungültige Antwort', 0);
+            $this->SendDebug('GetForecast', 'Energy-Charts: ' . $this->Translate('API unreachable or invalid response'), 0);
             return [];
         }
 
@@ -788,10 +775,10 @@ class StromGedachtWidget extends IPSModule
 
     private function FetchStromGedacht(string $zip, int &$ok, int &$zipUnknown, int &$failed): array
     {
-        $column = ['title' => 'StromGedacht', 'color' => self::COLOR_GREY, 'label' => 'Keine Daten', 'text' => ''];
+        $column = ['title' => 'StromGedacht', 'color' => self::COLOR_GREY, 'label' => $this->Translate('No data'), 'text' => ''];
 
         if ($zip === '') {
-            $column['text'] = 'Postleitzahl fehlt';
+            $column['text'] = $this->Translate('Postal code missing');
             $zipUnknown++;
             return $column;
         }
@@ -801,7 +788,7 @@ class StromGedachtWidget extends IPSModule
         // Die API antwortet mit 400 + Hinweistext, wenn sie die PLZ nicht
         // kennt bzw. keine Daten für das PLZ-Gebiet vorliegen
         if ($code === 400 && stripos((string) $body, 'no data') !== false) {
-            $message = 'Für die Postleitzahl ' . $zip . ' liegen keine Daten vor';
+            $message = sprintf($this->Translate('No data available for postal code %s'), $zip);
             $this->SendDebug('StromGedacht', $message, 0);
             $this->SetValue('Text', $message);
             $column['text'] = $message;
@@ -811,14 +798,14 @@ class StromGedachtWidget extends IPSModule
 
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['state'])) {
-            $this->SendDebug('StromGedacht', 'API nicht erreichbar oder ungültige Antwort', 0);
-            $column['text'] = 'API nicht erreichbar';
+            $this->SendDebug('StromGedacht', $this->Translate('API unreachable or invalid response'), 0);
+            $column['text'] = $this->Translate('API unreachable');
             $failed++;
             return $column;
         }
 
         $state = (int) $data['state'];
-        $text = self::SG_TEXTS[$state] ?? 'Unbekannter Zustand (' . $state . ')';
+        $text = isset(self::SG_TEXTS[$state]) ? $this->Translate(self::SG_TEXTS[$state]) : sprintf($this->Translate('Unknown state (%s)'), $state);
 
         $this->SetValue('State', $state);
         $this->SetValue('Text', $text);
@@ -828,17 +815,17 @@ class StromGedachtWidget extends IPSModule
         return [
             'title' => 'StromGedacht',
             'color' => self::SG_COLORS[$state] ?? self::COLOR_GREY,
-            'label' => self::SG_LABELS[$state] ?? 'Unbekannt',
+            'label' => $this->Translate(self::SG_LABELS[$state] ?? 'Unknown'),
             'text'  => $text
         ];
     }
 
     private function FetchGSI(string $zip, int &$ok, int &$zipUnknown, int &$failed): array
     {
-        $column = ['title' => 'GrünstromIndex', 'color' => self::COLOR_GREY, 'label' => 'Keine Daten', 'text' => ''];
+        $column = ['title' => 'GrünstromIndex', 'color' => self::COLOR_GREY, 'label' => $this->Translate('No data'), 'text' => ''];
 
         if ($zip === '') {
-            $column['text'] = 'Postleitzahl fehlt';
+            $column['text'] = $this->Translate('Postal code missing');
             $zipUnknown++;
             return $column;
         }
@@ -847,8 +834,8 @@ class StromGedachtWidget extends IPSModule
 
         $data = $this->DecodeJson($code, $body);
         if ($data === null) {
-            $this->SendDebug('GrünstromIndex', 'API nicht erreichbar oder ungültige Antwort', 0);
-            $column['text'] = 'API nicht erreichbar';
+            $this->SendDebug('GrünstromIndex', $this->Translate('API unreachable or invalid response'), 0);
+            $column['text'] = $this->Translate('API unreachable');
             $failed++;
             return $column;
         }
@@ -856,7 +843,7 @@ class StromGedachtWidget extends IPSModule
         // Bei unbekannter PLZ liefert die API ein leeres forecast-Array
         $forecast = $data['forecast'] ?? [];
         if (count($forecast) === 0) {
-            $message = 'Für die Postleitzahl ' . $zip . ' liegen keine Daten vor';
+            $message = sprintf($this->Translate('No data available for postal code %s'), $zip);
             $this->SendDebug('GrünstromIndex', $message, 0);
             $column['text'] = $message;
             $zipUnknown++;
@@ -879,13 +866,13 @@ class StromGedachtWidget extends IPSModule
 
         if ($gsiValue >= 66) {
             $color = '#00c853';
-            $text = 'Hoher Grünstrom-Anteil in der Region';
+            $text = $this->Translate('High share of green electricity in the region');
         } elseif ($gsiValue >= 33) {
             $color = '#ffd600';
-            $text = 'Durchschnittlicher Grünstrom-Anteil in der Region';
+            $text = $this->Translate('Average share of green electricity in the region');
         } else {
             $color = '#d50000';
-            $text = 'Niedriger Grünstrom-Anteil in der Region';
+            $text = $this->Translate('Low share of green electricity in the region');
         }
 
         $this->SetValue('GSI', $gsiValue);
@@ -900,16 +887,24 @@ class StromGedachtWidget extends IPSModule
         ];
     }
 
+    /** Zahl mit Dezimaltrennzeichen der Anzeigesprache (Deutsch: Komma, sonst Punkt). */
+    private function formatDecimal(float $value, int $decimals): string
+    {
+        // Schlüssel ist absichtlich kein Satz: Deutsch liefert "," zurück, jede andere Sprache den Schlüssel selbst
+        $german = $this->Translate('decimal comma') === ',';
+        return number_format($value, $decimals, $german ? ',' : '.', $german ? '.' : ',');
+    }
+
     private function FetchEnergyCharts(int &$ok, int &$failed): array
     {
-        $column = ['title' => 'Energy-Charts', 'color' => self::COLOR_GREY, 'label' => 'Keine Daten', 'text' => ''];
+        $column = ['title' => 'Energy-Charts', 'color' => self::COLOR_GREY, 'label' => $this->Translate('No data'), 'text' => ''];
 
         [$code, $body] = $this->HttpGet('https://api.energy-charts.info/signal?country=de');
 
         $data = $this->DecodeJson($code, $body);
         if ($data === null || !isset($data['unix_seconds'], $data['signal'])) {
-            $this->SendDebug('Energy-Charts', 'API nicht erreichbar oder ungültige Antwort', 0);
-            $column['text'] = 'API nicht erreichbar';
+            $this->SendDebug('Energy-Charts', $this->Translate('API unreachable or invalid response'), 0);
+            $column['text'] = $this->Translate('API unreachable');
             $failed++;
             return $column;
         }
@@ -935,23 +930,23 @@ class StromGedachtWidget extends IPSModule
         return [
             'title' => 'Energy-Charts',
             'color' => self::EC_COLORS[$signal] ?? self::COLOR_GREY,
-            'label' => self::EC_LABELS[$signal] ?? 'Unbekannt',
-            'text'  => (self::EC_TEXTS[$signal] ?? 'Unbekanntes Signal') . ' (EE-Anteil: ' . number_format($share, 1, ',', '.') . ' %)'
+            'label' => $this->Translate(self::EC_LABELS[$signal] ?? 'Unknown'),
+            'text'  => sprintf($this->Translate('%s (renewable share: %s %%)'), $this->Translate(self::EC_TEXTS[$signal] ?? 'Unknown signal'), $this->formatDecimal($share, 1))
         ];
     }
 
     // Liefert [HTTP-Code, Body]; Code 0 = Verbindungsfehler
     private function HttpGet(string $url): array
     {
-        [$code, $body] = $this->TryHttpGet($url, false);
+        [$code, $body] = $this->TryHttpGetEncodings($url, false);
 
         // PHP-Streams haben keinen IPv6→IPv4-Fallback; bei Verbindungsfehler
         // (z. B. nicht erreichbarer IPv6-Endpunkt) erzwungen über IPv4 wiederholen.
         // Ein leerer Body trotz Statuscode bedeutet eine vorzeitig beendete
         // Verbindung und wird ebenfalls als Fehler behandelt
         if ($body === null || trim($body) === '') {
-            $this->SendDebug('API', 'Verbindungsfehler, wiederhole über IPv4: ' . $url, 0);
-            [$code, $body] = $this->TryHttpGet($url, true);
+            $this->SendDebug('API', $this->Translate('Connection error, retrying via IPv4:') . ' ' . $url, 0);
+            [$code, $body] = $this->TryHttpGetEncodings($url, true);
             if ($body !== null && trim($body) === '') {
                 $body = null;
             }
@@ -965,7 +960,21 @@ class StromGedachtWidget extends IPSModule
         return [$code, $body];
     }
 
-    private function TryHttpGet(string $url, bool $forceIPv4): array
+    // Ein Abruf; liefert die Vorschaltschicht der API trotz "identity" eine nicht entpackbare Antwort
+    // (Brotli), wird sofort einmal mit "gzip" wiederholt - das lässt sich entpacken. Gemessen: Die
+    // seltenen Brotli-Antworten (ca. jeder 50.-sechste Abruf) kamen auch beim IPv4-Wiederholungsversuch.
+    private function TryHttpGetEncodings(string $url, bool $forceIPv4): array
+    {
+        [$code, $body, $encodingRejected] = $this->TryHttpGet($url, $forceIPv4, 'identity');
+        if ($encodingRejected) {
+            [$code, $body] = $this->TryHttpGet($url, $forceIPv4, 'gzip');
+        }
+
+        return [$code, $body];
+    }
+
+    // Liefert [HTTP-Code, Body, Kodierung abgelehnt]; Body null bei Fehler
+    private function TryHttpGet(string $url, bool $forceIPv4, string $acceptEncoding = 'identity'): array
     {
         $options = [
             'http' => [
@@ -974,7 +983,7 @@ class StromGedachtWidget extends IPSModule
                 // (Azure) lieferte bei ca. jedem sechsten Abruf trotz fehlendem Accept-Encoding
                 // eine Brotli-Antwort (Content-Encoding: br), die PHP-Streams nicht entpacken -
                 // der Body begann dann mit Binärbytes, json_decode scheiterte, der Stand blieb leer.
-                'header'        => "User-Agent: Symcon-StromGedacht\r\nAccept: application/json\r\nAccept-Encoding: identity\r\n",
+                'header'        => "User-Agent: Symcon-StromGedacht\r\nAccept: application/json\r\nAccept-Encoding: " . $acceptEncoding . "\r\n",
                 'timeout'       => 10,
                 'ignore_errors' => true
             ]
@@ -1003,7 +1012,7 @@ class StromGedachtWidget extends IPSModule
         }
 
         if ($body === false) {
-            return [$code, null];
+            return [$code, null, false];
         }
 
         // Trotz "identity" komprimierte Antwort: gzip/deflate entpacken, alles andere (z. B. br)
@@ -1019,13 +1028,13 @@ class StromGedachtWidget extends IPSModule
                 }
             }
             if ($decoded === false) {
-                $this->SendDebug('API', 'Antwort mit nicht entpackbarem Content-Encoding "' . $encoding . '" verworfen: ' . $url, 0);
-                return [$code, null];
+                $this->SendDebug('API', sprintf($this->Translate('Response with unsupported content encoding "%s" discarded: %s'), $encoding, $url), 0);
+                return [$code, null, true];
             }
             $body = $decoded;
         }
 
-        return [$code, $body];
+        return [$code, $body, false];
     }
 
     private function DecodeJson(int $code, ?string $body): ?array
@@ -1084,14 +1093,14 @@ class StromGedachtWidget extends IPSModule
     {
         $options = [];
         if ($this->ReadPropertyBoolean('EnableStromGedacht')) {
-            $options[] = ['caption' => 'StromGedacht-Ampel', 'value' => 'State'];
+            $options[] = ['caption' => $this->Translate('StromGedacht traffic light'), 'value' => 'State'];
         }
         if ($this->ReadPropertyBoolean('EnableGSI')) {
-            $options[] = ['caption' => 'GrünstromIndex', 'value' => 'GSI'];
+            $options[] = ['caption' => $this->Translate('GrünstromIndex'), 'value' => 'GSI'];
         }
         if ($this->ReadPropertyBoolean('EnableEnergyCharts')) {
-            $options[] = ['caption' => 'Energy-Charts-Signal', 'value' => 'ECSignal'];
-            $options[] = ['caption' => 'Energy-Charts EE-Anteil', 'value' => 'ECShare'];
+            $options[] = ['caption' => $this->Translate('Energy-Charts signal'), 'value' => 'ECSignal'];
+            $options[] = ['caption' => $this->Translate('Energy-Charts renewable share'), 'value' => 'ECShare'];
         }
         return $options;
     }
@@ -1100,7 +1109,7 @@ class StromGedachtWidget extends IPSModule
     private function applyActionToVariable(int $vid, string $action, string $rawValue, string $context): bool
     {
         if ($vid <= 0 || !IPS_VariableExists($vid)) {
-            $this->SendDebug('Aktion', sprintf('%s: Zielvariable #%d existiert nicht', $context, $vid), 0);
+            $this->SendDebug($this->Translate('Action'), sprintf($this->Translate('%s: target variable #%d does not exist'), $context, $vid), 0);
             return false;
         }
 
@@ -1120,13 +1129,13 @@ class StromGedachtWidget extends IPSModule
         $hasAction = ((int) $var['VariableAction'] > 0 || (int) $var['VariableCustomAction'] > 0);
         $ok = $hasAction ? @RequestAction($vid, $value) : @SetValue($vid, $value);
 
-        $this->SendDebug('Aktion', sprintf(
+        $this->SendDebug($this->Translate('Action'), sprintf(
             '%s -> %s #%d = %s (%s)',
             $context, $hasAction ? 'RequestAction' : 'SetValue',
-            $vid, json_encode($value), ($ok === false) ? 'FEHLER' : 'ok'
+            $vid, json_encode($value), ($ok === false) ? $this->Translate('ERROR') : 'ok'
         ), 0);
         if ($ok === false) {
-            $this->LogMessage(sprintf('Aktion "%s" auf Variable #%d fehlgeschlagen', $context, $vid), KL_WARNING);
+            $this->LogMessage(sprintf($this->Translate('Action "%s" on variable #%d failed'), $context, $vid), KL_WARNING);
         }
         return $ok !== false;
     }
@@ -1137,7 +1146,7 @@ class StromGedachtWidget extends IPSModule
         $raw = trim($raw);
         switch ($type) {
             case VARIABLETYPE_BOOLEAN:
-                return in_array(strtolower($raw), ['1', 'true', 'ein', 'on', 'ja', 'an'], true);
+                return in_array(strtolower($raw), ['1', 'true', 'ein', 'on', 'ja', 'yes', 'an'], true);
             case VARIABLETYPE_INTEGER:
                 return (int) $raw;
             case VARIABLETYPE_FLOAT:
@@ -1316,7 +1325,7 @@ class StromGedachtWidget extends IPSModule
     private function describeCondition(array $cond): string
     {
         $opText = [
-            'true' => 'wird EIN', 'false' => 'wird AUS', 'change' => 'ändert sich',
+            'true' => $this->Translate('turns ON'), 'false' => $this->Translate('turns OFF'), 'change' => $this->Translate('changes'),
             'eq' => '=', 'ne' => '≠', 'gt' => '>', 'ge' => '≥', 'lt' => '<', 'le' => '≤'
         ];
 
@@ -1343,18 +1352,18 @@ class StromGedachtWidget extends IPSModule
     {
         $conditions = $this->normalizeRuleConditions($rule);
         $parts = array_map([$this, 'describeCondition'], $conditions);
-        $condText = (count($parts) > 0) ? implode(' UND ', $parts) : '?';
+        $condText = (count($parts) > 0) ? implode(' ' . $this->Translate('AND') . ' ', $parts) : '?';
 
         $tVid = (int) ($rule['Target'] ?? 0);
         $tName = ($tVid > 0 && IPS_VariableExists($tVid)) ? IPS_GetName($tVid) : ('#' . $tVid);
         switch ((string) ($rule['Action'] ?? 'on')) {
-            case 'off':    $do = $tName . ' ausschalten'; break;
-            case 'toggle': $do = $tName . ' umschalten'; break;
+            case 'off':    $do = sprintf($this->Translate('switch off %s'), $tName); break;
+            case 'toggle': $do = sprintf($this->Translate('toggle %s'), $tName); break;
             case 'value':  $do = $tName . ' = ' . (string) ($rule['Value'] ?? ''); break;
-            default:       $do = $tName . ' einschalten'; break;
+            default:       $do = sprintf($this->Translate('switch on %s'), $tName); break;
         }
 
-        return sprintf('Wenn %s → %s', $condText, $do);
+        return sprintf($this->Translate('If %s → %s'), $condText, $do);
     }
 
     /**
@@ -1398,12 +1407,11 @@ class StromGedachtWidget extends IPSModule
     {
         switch ($info['state']) {
             case 'ok':
-                return '✅ EMS erkannt (EMS_GetControlledVariables): ' . count($info['ids']) . ' vom EMS gesteuerte Variable(n) bekannt - '
-                    . 'deine Regeln werden dagegen abgeglichen, bei Übereinstimmung erscheint eine Warnung.';
+                return sprintf($this->Translate('✅ EMS detected (EMS_GetControlledVariables): %d variable(s) controlled by the EMS known - your rules are checked against them, a warning appears on a match.'), count($info['ids']));
             case 'error':
-                return '⚠️ EMS erkannt, die Abfrage der vom EMS gesteuerten Variablen schlägt aber fehl - die Zwei-Regler-Prüfung ist derzeit nicht möglich (Details im Debug-Fenster).';
+                return $this->Translate('⚠️ EMS detected, but querying the variables controlled by the EMS fails - the two-controller check is currently not possible (details in the debug window).');
             default:
-                return 'ℹ️ Kein EMS im System gefunden - die Zwei-Regler-Prüfung (Warnung, wenn eine Zielvariable auch vom EMS gesteuert wird) entfällt, alles andere funktioniert unverändert.';
+                return $this->Translate('ℹ️ No EMS found in the system - the two-controller check (warning if a target variable is also controlled by the EMS) is skipped, everything else works unchanged.');
         }
     }
 
@@ -1468,8 +1476,8 @@ class StromGedachtWidget extends IPSModule
                     }
                 }
             } elseif ($p === VARIABLE_PRESENTATION_SWITCH) {
-                $out[] = ['v' => 1, 'c' => (string) ($pres['CAPTION_ON'] ?? 'Ein')];
-                $out[] = ['v' => 0, 'c' => (string) ($pres['CAPTION_OFF'] ?? 'Aus')];
+                $out[] = ['v' => 1, 'c' => (string) ($pres['CAPTION_ON'] ?? $this->Translate('On'))];
+                $out[] = ['v' => 0, 'c' => (string) ($pres['CAPTION_OFF'] ?? $this->Translate('Off'))];
             }
         }
 
@@ -1483,7 +1491,7 @@ class StromGedachtWidget extends IPSModule
         }
 
         if (count($out) === 0 && (int) $var['VariableType'] === VARIABLETYPE_BOOLEAN) {
-            $out = [['v' => 1, 'c' => 'Ein'], ['v' => 0, 'c' => 'Aus']];
+            $out = [['v' => 1, 'c' => $this->Translate('On')], ['v' => 0, 'c' => $this->Translate('Off')]];
         }
         return json_encode($out);
     }
