@@ -1083,6 +1083,19 @@ foreach (['en' => ['Edit rule', 'Updated:'], 'de' => ['Regel bearbeiten', 'Aktua
     if (!$ok) { $failures++; }
 }
 
+// Hell/Dunkel der Kachel (SUITE.md Stolperstein 30): Schema aus den Symcon-Variablen, nicht aus dem Betriebssystem
+$tileHtml = (string) file_get_contents(__DIR__ . '/../StromGedachtTile/module.html');
+$unguarded = preg_match_all('/@media\s*\(prefers-color-scheme[^{]*\{\s*([^{]+)\{/', $tileHtml, $mm) ? array_filter($mm[1], function ($sel) {
+    return strpos($sel, ':not(.hell):not(.dunkel)') === false;
+}) : [];
+$ok = strpos($tileHtml, "getPropertyValue('--card-color')") !== false
+    && strpos($tileHtml, "getPropertyValue('--content-color')") !== false
+    && preg_match('/^(?!\s*\/\/).*frameElement/m', $tileHtml) !== 1
+    && strpos($tileHtml, ':root.hell') !== false && strpos($tileHtml, ':root.dunkel') !== false
+    && count($unguarded) === 0;
+printf("%s Kachel Hell/Dunkel: Erkennung über --card-color/--content-color, prefers-color-scheme nur als Rückfall (:not(.hell):not(.dunkel))\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) { $failures++; }
+
 // Spalten/GetState in beiden Sprachen: Bezeichnungen und Dezimalzeichen folgen der Sprache
 $ref = new ReflectionMethod(StromGedachtTile::class, 'BuildColumns');
 $GLOBALS['__lang'] = 'en';

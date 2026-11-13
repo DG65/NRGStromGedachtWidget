@@ -15,8 +15,23 @@
             --accent: #2bb3c0;
         }
 
+        /* Hell/Dunkel kommt aus den Symcon-Variablen (--card-color/--content-color, siehe symconSchema()),
+           nicht aus prefers-color-scheme: Das Betriebssystem muss nicht zur Symcon-App passen (Forum
+           power1625: weiße Schrift auf Weiß, SUITE.md Stolperstein 30). Das Betriebssystem gilt nur als
+           Rückfall, solange kein Schema erkannt ist. Eigene Farben aus dem Formular stehen als Inline-Stil
+           auf :root und schlagen diese Regeln. */
+        :root.hell {
+            --box: rgba(20, 30, 45, .06);
+            --text: #1b2430;
+            --textmuted: #5c6b7a;
+        }
+        :root.dunkel {
+            --box: rgba(127, 135, 145, .16);
+            --text: #ffffff;
+            --textmuted: #9fb0c0;
+        }
         @media (prefers-color-scheme: light) {
-            :root {
+            :root:not(.hell):not(.dunkel) {
                 --box: rgba(20, 30, 45, .06);
                 --text: #1b2430;
                 --textmuted: #5c6b7a;
@@ -63,7 +78,9 @@
         .sgt-ed { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none; align-items: flex-start; justify-content: center; padding: 24px 12px; overflow: auto; z-index: 10; }
         .sgt-ed.open { display: flex; }
         .sgt-ed-card { background: var(--bg); border: 1px solid var(--track); border-radius: 14px; padding: 16px; width: 100%; max-width: 520px; box-sizing: border-box; backdrop-filter: blur(6px); background-color: rgba(30,36,44,.97); }
-        @media (prefers-color-scheme: light) { .sgt-ed-card { background-color: rgba(250,251,252,.98); } }
+        :root.hell .sgt-ed-card { background-color: rgba(250,251,252,.98); }
+        :root.dunkel .sgt-ed-card { background-color: rgba(30,36,44,.97); }
+        @media (prefers-color-scheme: light) { :root:not(.hell):not(.dunkel) .sgt-ed-card { background-color: rgba(250,251,252,.98); } }
         .sgt-ed-card h3 { margin: 0 0 12px; font-size: calc(14px * var(--scale)); color: var(--text); }
         .sgt-ed-card label { display: block; font-size: calc(10px * var(--scale)); color: var(--textmuted); text-transform: uppercase; letter-spacing: .5px; margin: 10px 0 4px; }
         .sgt-ed-card select, .sgt-ed-card input { width: 100%; box-sizing: border-box; background: var(--box); color: var(--text); border: 1px solid var(--track); border-radius: 8px; padding: 8px 10px; font-size: calc(13px * var(--scale)); font-family: var(--font); }
@@ -139,9 +156,43 @@
             return '{{t:Updated:}} ' + day + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
         }
 
+        // Hell/Dunkel aus den CSS-Variablen, die html-sdk.js auf :root setzt (--card-color, --content-color);
+        // prefers-color-scheme und die Messung über frameElement liefern falsche Ergebnisse (SUITE.md
+        // Stolperstein 30, Vorlage RoboHub 0.37.6). Ohne erkannte Variablen bleibt es beim Rückfall im CSS.
+        function symconSchema() {
+            try {
+                var cs = getComputedStyle(document.documentElement);
+                var karte = helligkeit(cs.getPropertyValue('--card-color'));
+                if (karte !== null) { return karte < 0.5 ? 'dunkel' : 'hell'; }
+                var text = helligkeit(cs.getPropertyValue('--content-color'));
+                if (text !== null) { return text > 0.5 ? 'dunkel' : 'hell'; }
+            } catch (e) { /* ohne Symcon-Variablen */ }
+            return '';
+        }
+        // '#rrggbb', '#rgb' oder 8-stellig. Beginnt ein 8-stelliger Wert mit "ff", ist er als AARRGGBB
+        // gemeint (deckend), sonst als RRGGBBAA gelesen.
+        function helligkeit(wert) {
+            var h = String(wert || '').trim().replace(/^#/, '');
+            if (!/^[0-9a-f]+$/i.test(h)) { return null; }
+            if (h.length === 3) { h = h.replace(/(.)/g, '$1$1'); }
+            if (h.length === 8) { h = /^ff/i.test(h) ? h.slice(2) : h.slice(0, 6); }
+            if (h.length !== 6) { return null; }
+            var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        }
+        function schemaSetzen() {
+            var s = symconSchema();
+            document.documentElement.classList.toggle('hell', s === 'hell');
+            document.documentElement.classList.toggle('dunkel', s === 'dunkel');
+        }
+        schemaSetzen();
+        // Symcon setzt die Variablen evtl. erst nach dem Laden bzw. beim Wechsel des Designs neu
+        try { new MutationObserver(schemaSetzen).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] }); } catch (e) { /* ältere Engine */ }
+
         function handleMessage(payload) {
             var d = (typeof payload === 'string') ? JSON.parse(payload) : payload;
             if (!d) return;
+            schemaSetzen();
 
             // Teil-Nachrichten für den Regel-Editor (kein vollständiges Kachel-Update)
             if (d.editor !== undefined) { ED.data = d.editor; edOpenNow(); return; }
