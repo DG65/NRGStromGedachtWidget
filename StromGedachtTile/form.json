@@ -60,16 +60,26 @@
         {
             "type": "SelectInstance",
             "name": "SourceInstance",
-            "caption": "Data source (empty = detect automatically)",
+            "caption": "Data source",
             "onChange": "SGWTILE_OnChangeSource($id, $SourceInstance);",
             "validModules": [
                 "{D5A8C3A1-2222-4A55-8888-123456789003}"
             ]
         },
         {
+            "type": "Label",
+            "name": "SourceInstanceHint",
+            "caption": "Leave empty to detect the source automatically."
+        },
+        {
             "type": "CheckBox",
             "name": "AdoptWidgetName",
-            "caption": "Take over the tile name from the source automatically"
+            "caption": "Tile name from source"
+        },
+        {
+            "type": "Label",
+            "name": "AdoptWidgetNameHint",
+            "caption": "Takes over the name of the StromGedachtWidget instance as the tile name."
         },
         {
             "type": "ExpansionPanel",
@@ -184,7 +194,12 @@
         {
             "type": "CheckBox",
             "name": "ShowAutomations",
-            "caption": "Show automations (manage the source's If → Then rules)"
+            "caption": "Show automations"
+        },
+        {
+            "type": "Label",
+            "name": "ShowAutomationsHint",
+            "caption": "Manage the If → Then rules of the source directly in the tile."
         },
         {
             "type": "Button",

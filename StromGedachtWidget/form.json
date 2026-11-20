@@ -47,22 +47,42 @@
         {
             "type": "CheckBox",
             "name": "EnableStromGedacht",
-            "caption": "StromGedacht (TransnetBW, grid signal, postal code required, ONLY Baden-Württemberg + pilot areas)"
+            "caption": "StromGedacht"
+        },
+        {
+            "type": "Label",
+            "name": "EnableStromGedachtHint",
+            "caption": "Grid signal from TransnetBW. Needs a postal code and covers ONLY Baden-Württemberg and a few pilot areas."
         },
         {
             "type": "CheckBox",
             "name": "EnableGSI",
-            "caption": "GrünstromIndex (Corrently, eco signal, postal code required)"
+            "caption": "GrünstromIndex"
+        },
+        {
+            "type": "Label",
+            "name": "EnableGSIHint",
+            "caption": "Eco signal from Corrently. Needs a postal code, covers all of Germany."
         },
         {
             "type": "CheckBox",
             "name": "EnableEnergyCharts",
-            "caption": "Energy-Charts traffic light (Fraunhofer ISE, eco signal, all of Germany)"
+            "caption": "Energy-Charts"
+        },
+        {
+            "type": "Label",
+            "name": "EnableEnergyChartsHint",
+            "caption": "Traffic light (eco signal) from Fraunhofer ISE. Covers all of Germany, no postal code needed."
         },
         {
             "type": "ValidationTextBox",
             "name": "ZipCode",
-            "caption": "Postal code (for StromGedacht and GrünstromIndex)"
+            "caption": "Postal code"
+        },
+        {
+            "type": "Label",
+            "name": "ZipCodeHint",
+            "caption": "Used for StromGedacht and GrünstromIndex."
         },
         {
             "type": "NumberSpinner",

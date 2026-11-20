@@ -269,7 +269,7 @@ foreach ($cases as $label => [$props, $expectedStatus, $expectedIdents, $forbidd
 }
 
 // [Properties, {Feld => muss null sein?}] - dauerhafte Regression für den NRG-Stack-Vertrag
-// SGW_GetState (contractVersion 1.0). Bisher nur mit Wegwerf-Skripten live geprüft; das war
+// SGW_GetState (Typ gridsignal, contractVersion 1.1). Bisher nur mit Wegwerf-Skripten live geprüft; das war
 // eine "KI-Krücke" (Ziel 3 im gemeinsamen Zielbild, SUITE.md) - hier jetzt fest verankert.
 echo "\n";
 $stateCases = [
@@ -294,7 +294,10 @@ foreach ($stateCases as $label => [$props, $expectNull]) {
 
     $state = $module->GetState();
     $problems = [];
-    if (($state['contractVersion'] ?? null) !== '1.0') {
+    if (($state['contractType'] ?? null) !== 'gridsignal') {
+        $problems[] = 'contractType fehlt/falsch: ' . var_export($state['contractType'] ?? null, true);
+    }
+    if (($state['contractVersion'] ?? null) !== '1.1') {
         $problems[] = 'contractVersion fehlt/falsch: ' . var_export($state['contractVersion'] ?? null, true);
     }
     foreach ($expectNull as $field => $mustBeNull) {
@@ -342,8 +345,8 @@ if (!is_array($entries)) {
     $problems[] = 'kein Array zurückgegeben';
 } else {
     foreach ($entries as $i => $entry) {
-        if (($entry['contractVersion'] ?? null) !== '1.0') {
-            $problems[] = "Eintrag $i: contractVersion falsch";
+        if (($entry['contractVersion'] ?? null) !== '1.1' || ($entry['contractType'] ?? null) !== 'gridsignal') {
+            $problems[] = "Eintrag $i: contractVersion/contractType falsch";
         }
         if (($entry['source'] ?? null) !== 'stromgedacht') {
             $problems[] = "Eintrag $i: source falsch";
@@ -391,8 +394,8 @@ function checkForecastEntries(array $entries, string $expectedSource): array
 {
     $problems = [];
     foreach ($entries as $i => $entry) {
-        if (($entry['contractVersion'] ?? null) !== '1.0') {
-            $problems[] = "Eintrag $i: contractVersion falsch";
+        if (($entry['contractVersion'] ?? null) !== '1.1' || ($entry['contractType'] ?? null) !== 'gridsignal') {
+            $problems[] = "Eintrag $i: contractVersion/contractType falsch";
         }
         if (($entry['source'] ?? null) !== $expectedSource) {
             $problems[] = "Eintrag $i: source falsch (" . ($entry['source'] ?? '?') . ")";
@@ -937,6 +940,17 @@ if (!$serverUp) {
         $failures++;
     }
 
+    // Brotli-Phase von ca. einer Sekunde (wie bei der echten API gemessen), egal welche Kodierung angefordert wird:
+    // identity und gzip scheitern, nach kurzer Wartezeit gelingt der Abruf im selben Lauf.
+    $start = microtime(true);
+    [$code, $body] = $httpGet->invoke($httpModule, $base . '/br-burst?t=' . uniqid('', true));
+    $dauer = microtime(true) - $start;
+    $ok = $code === 200 && json_decode((string) $body, true) === ['state' => 1] && $dauer >= 1.0 && $dauer < 6.0;
+    printf("%s HTTP: Brotli-Phase von einer Sekunde -> Wartezeit, dann gelingt der Abruf (%.1f s)\n", $ok ? 'PASS' : 'FAIL', $dauer);
+    if (!$ok) {
+        $failures++;
+    }
+
     [$code, $body] = $httpGet->invoke($httpModule, $base . '/br');
     $ok = $body === null;
     printf("%s HTTP: Server liefert immer Brotli -> sauberer Fehler (null) statt Binärmüll, keine Endlosschleife\n", $ok ? 'PASS' : 'FAIL');
@@ -1069,6 +1083,77 @@ foreach (['Widget' => $enWidgetForm, 'Kachel' => $enTileForm] as $label => $form
     printf("%s Englisch: Formular %s (%d Texte) ohne deutsche Reste%s\n", $ok ? 'PASS' : 'FAIL', $label, count($texts), $ok ? '' : ' - gefunden: ' . implode(' | ', $bad));
     if (!$ok) { $failures++; }
 }
+
+// Beschriftung von Eingabefeldern (SUITE.md "Einheitliche Formular-Optik", 17.11.2026), am FERTIGEN Formular in beiden
+// Sprachen: caption höchstens 40 Zeichen; jede <Feld>Hint-Zeile steht direkt hinter ihrem Feld.
+$inputTypes = ['CheckBox', 'ValidationTextBox', 'NumberSpinner', 'Select', 'SelectColor', 'SelectVariable', 'SelectInstance', 'SelectObject', 'PasswordTextBox', 'Slider', 'List'];
+$collectInputs = function ($node) use (&$collectInputs, $inputTypes): array {
+    $out = [];
+    foreach (is_array($node) ? $node : [] as $el) {
+        if (!is_array($el)) { continue; }
+        if (in_array($el['type'] ?? '', $inputTypes, true) && isset($el['caption']) && is_string($el['caption'])) {
+            $out[] = ['name' => (string) ($el['name'] ?? ''), 'caption' => $el['caption']];
+        }
+        foreach (['items', 'elements'] as $k) {
+            if (isset($el[$k]) && is_array($el[$k])) { $out = array_merge($out, $collectInputs($el[$k])); }
+        }
+    }
+    return $out;
+};
+$hintOrder = function ($node, array $inputNames) use (&$hintOrder): array {
+    $bad = [];
+    $list = array_values(is_array($node) ? $node : []);
+    foreach ($list as $i => $el) {
+        if (!is_array($el)) { continue; }
+        $n = (string) ($el['name'] ?? '');
+        if (preg_match('/^(.+)Hint$/', $n, $m) && in_array($m[1], $inputNames, true)) {
+            $prev = $list[$i - 1]['name'] ?? '';
+            if ($prev !== $m[1]) { $bad[] = $n; }
+        }
+        foreach (['items', 'elements'] as $k) {
+            if (isset($el[$k]) && is_array($el[$k])) { $bad = array_merge($bad, $hintOrder($el[$k], $inputNames)); }
+        }
+    }
+    return $bad;
+};
+foreach (['de', 'en'] as $lang) {
+    $GLOBALS['__lang'] = $lang;
+    $GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
+    $wForm = new StromGedachtWidget($noSourceProps);
+    $wForm->Create();
+    $tForm = new StromGedachtTile($tileBase);
+    $tForm->Create();
+    foreach (['Widget' => [$wForm, $wForm->GetConfigurationForm()], 'Kachel' => [$tForm, $tForm->GetConfigurationForm()]] as $label => [$mod, $json]) {
+        $form = consoleForm($mod, $json);
+        $inputs = $collectInputs($form['elements'] ?? []);
+        $tooLong = [];
+        foreach ($inputs as $in) {
+            if (mb_strlen($in['caption']) > 40) { $tooLong[] = $in['name'] . ' (' . mb_strlen($in['caption']) . ')'; }
+        }
+        $ok = count($inputs) >= 3 && count($tooLong) === 0;
+        printf("%s Beschriftungen %s (%s): %d Eingabefelder höchstens 40 Zeichen%s\n", $ok ? 'PASS' : 'FAIL', $label, $lang, count($inputs), $ok ? '' : ' - zu lang: ' . implode(', ', $tooLong));
+        if (!$ok) { $failures++; }
+        $badHints = $hintOrder($form['elements'] ?? [], array_column($inputs, 'name'));
+        $ok = count($badHints) === 0;
+        printf("%s Erklärungen %s (%s): jede ...Hint-Zeile steht direkt hinter ihrem Feld%s\n", $ok ? 'PASS' : 'FAIL', $label, $lang, $ok ? '' : ' - falsch: ' . implode(', ', $badHints));
+        if (!$ok) { $failures++; }
+    }
+}
+$GLOBALS['__lang'] = 'de';
+
+// "Wert kommt automatisch": wird das Feld "Datenquelle" ausgeblendet, geht seine Erklärung mit (SUITE.md <Feld>Hint)
+$hw = makeTestWidget('Hint-Quelle', ['State' => 1]);
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [$hw->InstanceID];
+$autoForm = tileForm($tileBase);
+$hintAuto = findFormElement($autoForm['elements'], 'SourceInstanceHint');
+$fieldAuto = findFormElement($autoForm['elements'], 'SourceInstance');
+$manualForm = tileForm(['SourceInstance' => $hw->InstanceID] + $tileBase);
+$hintManual = findFormElement($manualForm['elements'], 'SourceInstanceHint');
+$ok = $hintAuto !== null && ($hintAuto['visible'] ?? true) === false && ($fieldAuto['visible'] ?? true) === false
+    && $hintManual !== null && ($hintManual['visible'] ?? true) !== false;
+printf("%s Kachel: Erklärung der Datenquelle wird mit dem Feld ausgeblendet (automatisch), bei eigener Wahl sichtbar\n", $ok ? 'PASS' : 'FAIL');
+if (!$ok) { $failures++; }
+$GLOBALS['__instancesByModule'][GUID_WIDGET_TEST] = [];
 
 // Kachel in beiden Sprachen: Token ersetzt, Sprache folgt Symcon
 $tw = makeTestWidget('Messung', ['State' => 1, 'GSI' => 70.0, 'ECSignal' => 2, 'ECShare' => 40.5]);

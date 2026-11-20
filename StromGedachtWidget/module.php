@@ -23,10 +23,21 @@ class StromGedachtWidget extends IPSModule
     // (UpdateInterval-Untergrenze) sicher darüber und ist davon nie betroffen.
     private const REFRESH_COOLDOWN_SECONDS = 30;
 
+    // Vertrag für andere Module (EMS u. a.): Typ "gridsignal" (Netzsignal, nur lesend). Version 1.1: Minor-
+    // Erhöhung gegenüber 1.0 (20.11.2026, SUITE.md "Fremdanbindung"), contractType ist neu, alle bisherigen
+    // Schlüssel bleiben unverändert. Die Version steht bewusst als Literal '1.1' in den Rückgaben (nicht als
+    // Konstante): Der Migrationsvergleich (SUITE.md 9e) erkennt die Vertrags-Hauptversion nur am Literal.
+    private const CONTRACT_TYPE = 'gridsignal';
+
+    // Wartezeit (Mikrosekunden), bevor ein Abruf mit abgelehnter Kodierung (Brotli) wiederholt wird, siehe TryHttpGetEncodings()
+    private const ENCODING_RETRY_WAIT_US = 1500000;
+
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.10.0';
+    private const MODULE_VERSION = '1.11.0';
     private const NEWS_ITEMS = [
+        'Open contract for other modules: SGW_GetState() and SGW_GetForecast() now describe themselves with the field contractType (gridsignal) and contract version 1.1. All existing fields stay unchanged. A short guide in German and English (docs folder) explains the states and fields, so that other grid-signal modules can plug into the NRG-Stack as well.',
+        'Shorter field labels: the data source checkboxes and the postal code now have short labels, the explanations stand in a text line directly below each field.',
         'Now bilingual: form, messages, status texts and variable names are available in English and German and follow the Symcon language.',
         'The traffic-light labels returned by SGW_GetState() ("label") and shown in the tile now follow the language as well. The field names are unchanged.',
         'Technical: the "don\'t show again" state is now synchronized with other StromGedacht instances when the form is opened, no longer while changes are applied.',
@@ -574,7 +585,7 @@ class StromGedachtWidget extends IPSModule
     }
 
     // ---------------------------------------------------------------------
-    // NRG-Stack-Vertrag (contractVersion 1.0): stabile Getter für andere
+    // NRG-Stack-Vertrag (Typ gridsignal, contractVersion 1.1): stabile Getter für andere
     // Module des Verbunds (z. B. EMS). StromGedacht ist eine Empfehlung,
     // keine Pflicht - anders als z. B. EMS_GetSpecialEvents (erzwungene
     // externe Eingriffe).
@@ -594,7 +605,8 @@ class StromGedachtWidget extends IPSModule
         $updatedRaw = $this->GetOwnValue('Updated');
 
         return [
-            'contractVersion' => '1.0',
+            'contractVersion' => '1.1',
+            'contractType'    => self::CONTRACT_TYPE,
             'state'    => $state,
             'label'    => $state !== null ? $this->Translate(self::SG_LABELS[$state] ?? 'Unknown') : $this->Translate('StromGedacht disabled'),
             'gsi'      => $gsiRaw !== null ? (float) $gsiRaw : null,
@@ -669,7 +681,8 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.0',
+                'contractVersion' => '1.1',
+                'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'stromgedacht',
                 'from'   => $from,
                 'to'     => $to,
@@ -712,7 +725,8 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.0',
+                'contractVersion' => '1.1',
+                'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'gsi',
                 'from'   => $from,
                 'to'     => $to,
@@ -755,7 +769,8 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.0',
+                'contractVersion' => '1.1',
+                'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'energycharts',
                 'from'   => $from,
                 'to'     => $to,
@@ -960,14 +975,26 @@ class StromGedachtWidget extends IPSModule
         return [$code, $body];
     }
 
-    // Ein Abruf; liefert die Vorschaltschicht der API trotz "identity" eine nicht entpackbare Antwort
-    // (Brotli), wird sofort einmal mit "gzip" wiederholt - das lässt sich entpacken. Gemessen: Die
-    // seltenen Brotli-Antworten (ca. jeder 50.-sechste Abruf) kamen auch beim IPv4-Wiederholungsversuch.
+    // Ein Abruf mit Rückfall bei einer nicht entpackbaren Antwort (Brotli). Gemessen am 20.11.2026 (250 Abrufe je
+    // HTTP-Version): rund 4 % der Antworten sind Brotli, immer in Folgen von 4-5 Abrufen innerhalb etwa einer
+    // Sekunde - unabhängig von Accept-Encoding, HTTP-Version und IPv4/IPv6 (ein Server, der kurz den Header
+    // ignoriert). Deshalb: identity, dann gzip (hilft, wenn der Server den Header beachtet), danach kurz warten
+    // und beides noch einmal. Nach einer Sekunde war die Antwort in 4 von 4 Messungen wieder lesbar.
+    // Nur bei abgelehnter Kodierung wird gewartet; Verbindungsfehler und normale Antworten kehren sofort zurück.
     private function TryHttpGetEncodings(string $url, bool $forceIPv4): array
     {
-        [$code, $body, $encodingRejected] = $this->TryHttpGet($url, $forceIPv4, 'identity');
-        if ($encodingRejected) {
-            [$code, $body] = $this->TryHttpGet($url, $forceIPv4, 'gzip');
+        $code = 0;
+        $body = null;
+        foreach ([0, 1] as $round) {
+            if ($round === 1) {
+                usleep(self::ENCODING_RETRY_WAIT_US);
+            }
+            foreach (['identity', 'gzip'] as $encoding) {
+                [$code, $body, $encodingRejected] = $this->TryHttpGet($url, $forceIPv4, $encoding);
+                if (!$encodingRejected) {
+                    return [$code, $body];
+                }
+            }
         }
 
         return [$code, $body];

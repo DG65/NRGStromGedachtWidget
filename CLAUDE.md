@@ -22,6 +22,11 @@ Zweisprachigkeit abgelöst (EMS-Auftrag 05.11.2026, SUITE.md Konventionen Punkt 
   oder HTML-Tags enthalten (stehen auch in JavaScript-Zeichenketten; der Test prüft das).
 - **Stolperstein 24:** nicht hunderte `Translate()`-Aufrufe je Timer-/Kachel-Lauf; der Test
   begrenzt die Anzahl (derzeit <= 12).
+- **Eingabefelder:** `caption` höchstens 40 Zeichen (am fertigen Formular in DE und EN, der Test prüft das), Einheit
+  in `suffix`, Erklärung als `<Feld>Hint`-Label direkt hinter dem Feld; wird ein Feld per Code ausgeblendet, geht
+  die Erklärung mit (SUITE.md "Einheitliche Formular-Optik").
+- **Store-Doku-Link:** `documentation` in beiden Lokalisierungen (de und en) immer
+  `https://github.com/DG65/NRGStromGedachtWidget/blob/main/README.md`, nie `README.en.md`, nie `/blob/beta/`.
 - **Dezimalzeichen** über `formatDecimal()` (`Translate('decimal comma') === ','`), nie
   `number_format(..., ',', '.')` fest verdrahten.
 - **Idents sind API und werden nie umbenannt** (Verbund-Konvention). Konkret hier: `State`, `GSI`,

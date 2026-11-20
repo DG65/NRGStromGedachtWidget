@@ -71,8 +71,9 @@ class StromGedachtTile extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.10.1';
+    private const MODULE_VERSION = '1.11.0';
     private const NEWS_ITEMS = [
+        'Shorter field labels: data source, tile name and automations now have short labels, the explanations stand in a text line directly below each field.',
         'Light/dark detection fixed: the tile now takes its text color from the Symcon design (the colors of the app itself) instead of the device setting. Before, white text on a light background could appear when the app was light but the device was dark.',
         '🌐 Now bilingual (English/German): form, messages, status texts and the tile follow the Symcon language. The "don\'t show again" state is now synchronized with other tiles when the form is opened, no longer while changes are applied.',
         '🪟 New: choose the form layout yourself. In the new, collapsed panel "Form: layout" you decide for traffic-light colors, surfaces & text and font whether they are expanded, collapsed or hidden when the form opens, and in which order they appear. Hidden sections keep working, their settings are kept. No checkbox = as before.',
@@ -200,6 +201,8 @@ class StromGedachtTile extends IPSModule
         // automatischen Wert ins Feld schreiben (würde beim Übernehmen als eigene Angabe gespeichert).
         if ($this->sourceIsAutomatic()) {
             $this->setElementProperty($form['elements'], 'SourceInstance', 'visible', false);
+            // Die Erklärung gehört zum Feld und wird mit ausgeblendet (SUITE.md "<Feld>Hint")
+            $this->setElementProperty($form['elements'], 'SourceInstanceHint', 'visible', false);
         }
 
         // Fachpanels (Farben, Flächen & Text, Schrift) nach der Einstellung "Formular: Aufbau"
