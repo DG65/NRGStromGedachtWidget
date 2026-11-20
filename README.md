@@ -153,7 +153,9 @@ SGW_GetForecast(int $InstanzID, int $Von, int $Bis): array
 // Horizont/Raster unterscheiden sich je Quelle (API-Eigenheit, nicht vereinheitlicht, um keine
 // falsche Genauigkeit vorzutäuschen):
 //   - 'stromgedacht': max. 48 h ab jetzt, unregelmäßige Zustands-Segmente statt festem Raster.
+//     Wert = Ampelzustand wie state (-1/1/2/3/4).
 //   - 'gsi' (GrünstromIndex): mehrere Tage, STÜNDLICHES Raster (kein 15-Minuten-Takt).
+//     Wert = Öko-Index 0-100, KEIN Ampelzustand.
 //   - 'energycharts': 15-Minuten-Raster, aber nur ein knappes, an "jetzt" gekoppeltes
 //     Zukunftsfenster (kein garantierter 24h-Horizont). Wert ist ecSignal (-1/0/1/2);
 //     der EE-Anteil (ecShare) ist hier nicht enthalten.

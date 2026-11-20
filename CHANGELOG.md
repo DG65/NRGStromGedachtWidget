@@ -2,6 +2,10 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## Nachtrag zur Anleitung (2026-11-20, kein neues Release)
+
+- **Skala von `value` in `SGW_GetForecast()` je `source` dokumentiert** (Befund EMS, Live-Abruf bei Paul): Die Anleitung `EIGENES_NETZSIGNAL_MODUL.md`/`.en.md` sagte, `value` liege immer auf der Skala von `state`. Das gilt nur für `stromgedacht` und für eigene Quellen anderer Module. `gsi` liefert den Öko-Index 0 bis 100, `energycharts` das Signal −1/0/1/2. Der Code war richtig, nur die Beschreibung falsch; ein Konsument, der sich an den alten Satz hielt, las einen GrünstromIndex von 3,6 als "Orange". Neu: Tabelle "Skala von `value`", die Kennungen `gsi` und `energycharts` sind den beiden Quellen des StromGedacht Widgets vorbehalten, README mit den Skalen je Quelle ergänzt. Keine Code- und keine Vertragsänderung.
+
 ## 1.11.1 (2026-11-20)
 
 - **Vertrag `gridsignal` 1.2: optionales Feld `region`** (Entscheidung EMS 20.11.2026): `SGW_GetState()` liefert die Postleitzahl, für die das Signal gilt (String), oder `null` (nur Energy-Charts aktiv = bundesweit, oder keine PLZ). Damit kann ein Konsument bei mehreren Instanzen für verschiedene Regionen die passende wählen. Additiv (Minor), alle bisherigen Schlüssel unverändert, Hauptversion bleibt 1. `contractVersion` ist jetzt `'1.2'` in `GetState` und in jedem `GetForecast`-Eintrag. Die PLZ stammt aus der eigenen Einstellung der Instanz und wird nur lokal an andere Module weitergegeben.

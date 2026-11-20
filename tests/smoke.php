@@ -1243,4 +1243,14 @@ $ok = count($strayDirs) === 0 && is_file($root . '/EIGENES_NETZSIGNAL_MODUL.md')
 printf("%s Repo-Wurzel: keine fremden Ordner (nur Module, tests, .github), Anleitungen liegen als Dateien in der Wurzel%s\n", $ok ? 'PASS' : 'FAIL', $ok ? '' : ' - Ordner: ' . implode(', ', $strayDirs));
 if (!$ok) { $failures++; }
 
+// Anleitung: Die Skala von value hängt von source ab (Befund EMS 20.11.2026: GSI 0-100 darf nie als Ampel gelesen werden)
+$okGuide = true;
+foreach (['EIGENES_NETZSIGNAL_MODUL.md' => 'Skala von `value`', 'EIGENES_NETZSIGNAL_MODUL.en.md' => 'Scale of `value`'] as $file => $heading) {
+    $txt = (string) file_get_contents($root . '/' . $file);
+    $okGuide = $okGuide && strpos($txt, '### ' . $heading) !== false && strpos($txt, '| `gsi`') !== false && strpos($txt, '| `energycharts`') !== false
+        && strpos($txt, 'auf der Skala von `state` |') === false && strpos($txt, 'on the scale of `state` |') === false;
+}
+printf("%s Anleitung: Skala von value je source beschrieben, kein Pauschalsatz mehr (gsi 0-100, energycharts -1..2)\n", $okGuide ? 'PASS' : 'FAIL');
+if (!$okGuide) { $failures++; }
+
 exit($failures === 0 ? 0 : 1);

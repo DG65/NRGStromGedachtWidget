@@ -77,7 +77,22 @@ eine **leere Liste**, nie eine Exception.
 | `contractVersion` | `'1.2'` |
 | `source` | Kennung deiner Quelle in Kleinbuchstaben, zum Beispiel `'meinnetz'` |
 | `from`, `to` | Beginn und Ende des Zeitraums (Unix-Zeit, `from` < `to`), auf `[$Von, $Bis]` zugeschnitten |
-| `value` | Zustand im Zeitraum (Float) auf der Skala von `state` |
+| `value` | Wert im Zeitraum (Float). **Die Skala hängt von `source` ab**, siehe „Skala von `value`“ unten |
+
+### Skala von `value`
+
+`value` hat **nicht** für jede Quelle dieselbe Skala. Maßgeblich ist `source`:
+
+| `source` | Skala von `value` |
+|---|---|
+| `stromgedacht` und **jede eigene Quelle deines Moduls** | wie `state`: −1, 1, 2, 3, 4 (Ampelzustand) |
+| `gsi` (nur StromGedacht Widget) | Öko-Index 0 bis 100, **kein** Ampelzustand |
+| `energycharts` (nur StromGedacht Widget) | wie `ecSignal`: −1, 0, 1, 2 |
+
+Dein eigenes Modul liefert in `value` immer die Skala von `state`. Die Kennungen `gsi` und `energycharts` sind den beiden
+Quellen des StromGedacht Widgets vorbehalten, verwende sie nicht für andere Werte. Ein Konsument, der die Ampel will,
+liest nur Einträge mit der `state`-Skala und deutet Werte von `gsi` und `energycharts` nie als Ampelzustand: Ein
+GrünstromIndex von 3,6 ist kein „Orange“.
 
 Horizont und Zeitraster darfst du frei wählen (bei StromGedacht sind es unregelmäßige Zustands-Segmente bis 48 Stunden).
 Der Konsument darf keine feste Rasterung voraussetzen. Eine leere Liste beschreibt sich nicht selbst, den Typ erkennt der
@@ -89,6 +104,7 @@ Konsument deshalb über `GetState`.
 - Er ruft die Funktion nur im langsamen Zyklus (Minuten) auf, gekapselt und mit Zeitbudget. Ein Fehler führt dazu, dass dein
   Modul für diesen Zyklus übersprungen wird.
 - Er nimmt nur Antworten mit `contractType === 'gridsignal'` und passender Hauptversion (hier 1).
+- Er deutet `value` je nach `source` (siehe „Skala von `value`“), nie pauschal als Ampelzustand.
 - Das Signal ist eine **Empfehlung, keine Pflicht**: Ein Konsument darf es überstimmen, etwa wegen §14a oder Direktvermarktung.
 
 Hinweis: Auch das §14a-Modul des NRG-Stacks hat eine Funktion `GetState`, aber mit einem anderen `contractType`. Unterschieden

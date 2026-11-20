@@ -76,7 +76,22 @@ list**, never an exception.
 | `contractVersion` | `'1.2'` |
 | `source` | identifier of your source in lower case, for example `'mygrid'` |
 | `from`, `to` | start and end of the period (Unix time, `from` < `to`), clipped to `[$From, $To]` |
-| `value` | state during the period (float) on the scale of `state` |
+| `value` | value during the period (float). **The scale depends on `source`**, see "Scale of `value`" below |
+
+### Scale of `value`
+
+`value` does **not** have the same scale for every source. `source` decides:
+
+| `source` | Scale of `value` |
+|---|---|
+| `stromgedacht` and **every source of your own module** | like `state`: −1, 1, 2, 3, 4 (traffic-light state) |
+| `gsi` (StromGedacht Widget only) | eco index 0 to 100, **not** a traffic-light state |
+| `energycharts` (StromGedacht Widget only) | like `ecSignal`: −1, 0, 1, 2 |
+
+Your own module always delivers the scale of `state` in `value`. The identifiers `gsi` and `energycharts` are reserved for
+the two sources of the StromGedacht Widget, do not use them for other values. A consumer that wants the traffic light reads
+only entries with the `state` scale and never interprets values of `gsi` and `energycharts` as a traffic-light state: a
+GrünstromIndex of 3.6 is not "orange".
 
 You may choose horizon and time grid freely (for StromGedacht they are irregular state segments up to 48 hours). The consumer
 must not assume a fixed grid. An empty list does not describe itself, so the consumer detects the type through `GetState`.
@@ -87,6 +102,7 @@ must not assume a fixed grid. An empty list does not describe itself, so the con
 - It calls the function only in the slow cycle (minutes), encapsulated and with a time budget. An error makes it skip your
   module for that cycle.
 - It accepts only answers with `contractType === 'gridsignal'` and a matching major version (here 1).
+- It interprets `value` according to `source` (see "Scale of `value`"), never blanket as a traffic-light state.
 - The signal is a **recommendation, not an obligation**: a consumer may overrule it, for example because of §14a or direct marketing.
 
 Note: the §14a module of the NRG-Stack also has a function `GetState`, but with a different `contractType`. Always tell them

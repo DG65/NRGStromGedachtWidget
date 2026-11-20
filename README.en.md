@@ -153,7 +153,9 @@ SGW_GetForecast(int $InstanceID, int $From, int $To): array
 // Horizon/grid differ per source (API peculiarity, deliberately not unified so as not to
 // suggest false precision):
 //   - 'stromgedacht': max. 48 h from now, irregular state segments instead of a fixed grid.
+//     Value = traffic-light state like state (-1/1/2/3/4).
 //   - 'gsi' (GrünstromIndex): several days, HOURLY grid (no 15-minute step).
+//     Value = eco index 0-100, NOT a traffic-light state.
 //   - 'energycharts': 15-minute grid, but only a short future window tied to "now"
 //     (no guaranteed 24 h horizon). Value is ecSignal (-1/0/1/2);
 //     the renewable share (ecShare) is not included here.
