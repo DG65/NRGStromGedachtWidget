@@ -2,6 +2,12 @@
 
 Alle nennenswerten Änderungen an StromGedachtWidget.
 
+## 1.11.1 (2026-11-20)
+
+- **Vertrag `gridsignal` 1.2: optionales Feld `region`** (Entscheidung EMS 20.11.2026): `SGW_GetState()` liefert die Postleitzahl, für die das Signal gilt (String), oder `null` (nur Energy-Charts aktiv = bundesweit, oder keine PLZ). Damit kann ein Konsument bei mehreren Instanzen für verschiedene Regionen die passende wählen. Additiv (Minor), alle bisherigen Schlüssel unverändert, Hauptversion bleibt 1. `contractVersion` ist jetzt `'1.2'` in `GetState` und in jedem `GetForecast`-Eintrag. Die PLZ stammt aus der eigenen Einstellung der Instanz und wird nur lokal an andere Module weitergegeben.
+- **Anleitung in der Repo-Wurzel statt in `docs/`** (SUITE.md 5g, Tibber-Erfahrung): Die Store-Prüfung behandelt jeden Ordner in der Wurzel ohne `module.json` als Modul-Kandidaten. `EIGENES_NETZSIGNAL_MODUL.md` und `.en.md` liegen jetzt direkt in der Wurzel (mit `region` und Version 1.2), die Links in beiden READMEs sind angepasst. Neuer Prüfstand-Fall: In der Wurzel liegen keine fremden Ordner (nur Module, `tests`, `.github`).
+- **Prüfstand:** 66 Fälle (vorher 63), u. a. `region` bei StromGedacht/GrünstromIndex, nur Energy-Charts, getrimmter PLZ.
+
 ## 1.11.0 (2026-11-20)
 
 - **Offener Vertrag `gridsignal` 1.1** (EMS-Rundschreiben 20.11.2026, Dietmar: "Wir machen die Fremdanbindung komplett für alle Elemente", SUITE.md "Fremdanbindung: Module anderer Autoren"): `SGW_GetState()` und jeder Eintrag von `SGW_GetForecast()` tragen jetzt `contractType` (`'gridsignal'`) und `contractVersion` `'1.1'` (Minor-Erhöhung, kein Bruch, alle bisherigen Schlüssel unverändert). Damit kann das EMS Netzsignale auch fremder Module allgemein finden. `failsafeSec` und `managedBy` entfallen, der Vertrag ist nur lesend. Neue kurze, zweisprachige Anleitung für Entwickler eigener Netzsignal-Module: `docs/EIGENES_NETZSIGNAL_MODUL.md` und `.en.md` (Zustände, Felder, Skala, Beispielantwort, Prüfliste), aus beiden READMEs verlinkt.

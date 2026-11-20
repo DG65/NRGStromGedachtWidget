@@ -1,7 +1,7 @@
 # StromGedachtWidget
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Module version](https://img.shields.io/badge/Module_version-1.11.0-blue)
+![Module version](https://img.shields.io/badge/Module_version-1.11.1-blue)
 ![Symcon version](https://img.shields.io/badge/Symcon_version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml)
@@ -139,16 +139,17 @@ Further functions manage the automations (mainly meant for the tile, see [Automa
 ### NRG-Stack contract (for other modules, e.g. EMS)
 
 ```php
-// Current state of all enabled sources (type gridsignal, contractVersion 1.1)
+// Current state of all enabled sources (type gridsignal, contractVersion 1.2)
 SGW_GetState(int $InstanceID): array
-// -> ['contractType' => 'gridsignal', 'contractVersion' => '1.1', 'state' => int|null, 'label' => string,
+// -> ['contractType' => 'gridsignal', 'contractVersion' => '1.2', 'region' => string|null, 'state' => int|null, 'label' => string,
 //     'gsi' => float|null, 'ecSignal' => int|null, 'ecShare' => float|null, 'updated' => int]
 // Fields are null if the respective source is not enabled in this instance.
+// region = postal code the signal applies to (null = nationwide/unknown, e.g. only Energy-Charts enabled).
 // The field names are identical in every language; 'label' is display text and follows the Symcon language.
 
 // Forecast in the range [$From, $To] (Unix timestamps), a list per enabled source
 SGW_GetForecast(int $InstanceID, int $From, int $To): array
-// -> list of ['contractType' => 'gridsignal', 'contractVersion' => '1.1', 'source' => 'stromgedacht'|'gsi'|'energycharts', 'from' => int, 'to' => int, 'value' => float]
+// -> list of ['contractType' => 'gridsignal', 'contractVersion' => '1.2', 'source' => 'stromgedacht'|'gsi'|'energycharts', 'from' => int, 'to' => int, 'value' => float]
 // Horizon/grid differ per source (API peculiarity, deliberately not unified so as not to
 // suggest false precision):
 //   - 'stromgedacht': max. 48 h from now, irregular state segments instead of a fixed grid.
@@ -160,7 +161,7 @@ SGW_GetForecast(int $InstanceID, int $From, int $To): array
 // stromgedacht/gsi) or the respective API was unreachable — the other sources deliver independently.
 ```
 
-Since 1.11.0 both answers describe themselves (`contractType` = `gridsignal`, `contractVersion` = `1.1`); all previous fields are unchanged. If you want to connect your **own grid-signal module** to the NRG-Stack, functions, fields and scale are in the [guide](docs/EIGENES_NETZSIGNAL_MODUL.en.md) (German: [Anleitung](docs/EIGENES_NETZSIGNAL_MODUL.md)).
+Since 1.11.0 both answers describe themselves (`contractType` = `gridsignal`, `contractVersion` = `1.2`, with the optional field `region` since 1.11.1); all previous fields are unchanged. If you want to connect your **own grid-signal module** to the NRG-Stack, functions, fields and scale are in the [guide](EIGENES_NETZSIGNAL_MODUL.en.md) (German: [Anleitung](EIGENES_NETZSIGNAL_MODUL.md)).
 
 StromGedacht is a **recommendation, not an obligation** — a consuming module (e.g. the EMS) may overrule it if legal requirements (§14a), direct marketing or user comfort speak against it.
 

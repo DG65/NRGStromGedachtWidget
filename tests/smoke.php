@@ -281,6 +281,16 @@ $stateCases = [
         ['EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true, 'ZipCode' => ''],
         ['state' => true, 'gsi' => true, 'ecSignal' => false, 'ecShare' => false]
     ],
+    // region (ab Vertrag 1.2): nur Energy-Charts gilt bundesweit, auch wenn eine PLZ eingetragen ist -> null
+    'Nur Energy-Charts, PLZ eingetragen (region null)' => [
+        ['EnableStromGedacht' => false, 'EnableGSI' => false, 'EnableEnergyCharts' => true, 'ZipCode' => '70173'],
+        ['state' => true, 'gsi' => true, 'ecSignal' => false, 'ecShare' => false]
+    ],
+    // PLZ mit Leerzeichen wird getrimmt; GrünstromIndex allein nutzt die PLZ -> region = PLZ
+    'Nur GrünstromIndex, PLZ mit Leerzeichen (region getrimmt)' => [
+        ['EnableStromGedacht' => false, 'EnableGSI' => true, 'EnableEnergyCharts' => false, 'ZipCode' => ' 70173 '],
+        ['state' => true, 'gsi' => false, 'ecSignal' => true, 'ecShare' => true]
+    ],
 ];
 
 foreach ($stateCases as $label => [$props, $expectNull]) {
@@ -297,8 +307,14 @@ foreach ($stateCases as $label => [$props, $expectNull]) {
     if (($state['contractType'] ?? null) !== 'gridsignal') {
         $problems[] = 'contractType fehlt/falsch: ' . var_export($state['contractType'] ?? null, true);
     }
-    if (($state['contractVersion'] ?? null) !== '1.1') {
+    if (($state['contractVersion'] ?? null) !== '1.2') {
         $problems[] = 'contractVersion fehlt/falsch: ' . var_export($state['contractVersion'] ?? null, true);
+    }
+    // region: PLZ, solange eine Quelle mit PLZ aktiv ist (StromGedacht/GrünstromIndex), sonst null
+    $zipTrim = trim((string) $props['ZipCode']);
+    $expectedRegion = ($zipTrim !== '' && ($props['EnableStromGedacht'] || $props['EnableGSI'])) ? $zipTrim : null;
+    if (!array_key_exists('region', $state) || $state['region'] !== $expectedRegion) {
+        $problems[] = 'region fehlt/falsch: ' . var_export($state['region'] ?? 'FEHLT', true) . ' statt ' . var_export($expectedRegion, true);
     }
     foreach ($expectNull as $field => $mustBeNull) {
         if (!array_key_exists($field, $state)) {
@@ -345,7 +361,7 @@ if (!is_array($entries)) {
     $problems[] = 'kein Array zurückgegeben';
 } else {
     foreach ($entries as $i => $entry) {
-        if (($entry['contractVersion'] ?? null) !== '1.1' || ($entry['contractType'] ?? null) !== 'gridsignal') {
+        if (($entry['contractVersion'] ?? null) !== '1.2' || ($entry['contractType'] ?? null) !== 'gridsignal') {
             $problems[] = "Eintrag $i: contractVersion/contractType falsch";
         }
         if (($entry['source'] ?? null) !== 'stromgedacht') {
@@ -394,7 +410,7 @@ function checkForecastEntries(array $entries, string $expectedSource): array
 {
     $problems = [];
     foreach ($entries as $i => $entry) {
-        if (($entry['contractVersion'] ?? null) !== '1.1' || ($entry['contractType'] ?? null) !== 'gridsignal') {
+        if (($entry['contractVersion'] ?? null) !== '1.2' || ($entry['contractType'] ?? null) !== 'gridsignal') {
             $problems[] = "Eintrag $i: contractVersion/contractType falsch";
         }
         if (($entry['source'] ?? null) !== $expectedSource) {
@@ -1214,5 +1230,17 @@ $ok = $callsColumns <= 12 && $callsState <= 12;
 printf("%s Stolperstein 24: Translate()-Aufrufe je Lauf klein (Kachel-Spalten %d, GetState %d, <= 12)\n", $ok ? 'PASS' : 'FAIL', $callsColumns, $callsState);
 if (!$ok) { $failures++; }
 $GLOBALS['__lang'] = 'de';
+
+// Repo-Wurzel (SUITE.md 5g): Die Store-Prüfung behandelt jeden Ordner in der Wurzel ohne module.json als Modul-
+// Kandidaten. Erlaubt sind nur die Modulordner, tests und .github - Anleitungen liegen als Dateien in der Wurzel.
+$root = realpath(__DIR__ . '/..');
+$strayDirs = [];
+foreach (scandir($root) as $entry) {
+    if ($entry === '.' || $entry === '..' || $entry === '.git' || !is_dir($root . '/' . $entry)) { continue; }
+    if (!is_file($root . '/' . $entry . '/module.json') && !in_array($entry, ['tests', '.github'], true)) { $strayDirs[] = $entry; }
+}
+$ok = count($strayDirs) === 0 && is_file($root . '/EIGENES_NETZSIGNAL_MODUL.md') && is_file($root . '/EIGENES_NETZSIGNAL_MODUL.en.md');
+printf("%s Repo-Wurzel: keine fremden Ordner (nur Module, tests, .github), Anleitungen liegen als Dateien in der Wurzel%s\n", $ok ? 'PASS' : 'FAIL', $ok ? '' : ' - Ordner: ' . implode(', ', $strayDirs));
+if (!$ok) { $failures++; }
 
 exit($failures === 0 ? 0 : 1);

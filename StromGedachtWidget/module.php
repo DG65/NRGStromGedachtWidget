@@ -23,10 +23,11 @@ class StromGedachtWidget extends IPSModule
     // (UpdateInterval-Untergrenze) sicher darüber und ist davon nie betroffen.
     private const REFRESH_COOLDOWN_SECONDS = 30;
 
-    // Vertrag für andere Module (EMS u. a.): Typ "gridsignal" (Netzsignal, nur lesend). Version 1.1: Minor-
-    // Erhöhung gegenüber 1.0 (20.11.2026, SUITE.md "Fremdanbindung"), contractType ist neu, alle bisherigen
-    // Schlüssel bleiben unverändert. Die Version steht bewusst als Literal '1.1' in den Rückgaben (nicht als
-    // Konstante): Der Migrationsvergleich (SUITE.md 9e) erkennt die Vertrags-Hauptversion nur am Literal.
+    // Vertrag für andere Module (EMS u. a.): Typ "gridsignal" (Netzsignal, nur lesend). Version 1.1 (20.11.2026,
+    // SUITE.md "Fremdanbindung") ergänzte contractType, 1.2 das optionale Feld region; beides additiv (Minor),
+    // alle bisherigen Schlüssel bleiben unverändert. Die Version steht bewusst als Literal '1.2' in den
+    // Rückgaben (nicht als Konstante): Der Migrationsvergleich (SUITE.md 9e) erkennt die Vertrags-
+    // Hauptversion nur am Literal.
     private const CONTRACT_TYPE = 'gridsignal';
 
     // Wartezeit (Mikrosekunden), bevor ein Abruf mit abgelehnter Kodierung (Brotli) wiederholt wird, siehe TryHttpGetEncodings()
@@ -34,9 +35,10 @@ class StromGedachtWidget extends IPSModule
 
     // Muss bei jeder Version mit sichtbaren Neuerungen mitgezogen werden (Formular-Konvention
     // des NRG-Stack: "🆕 Neu in Version"-Panel + Versionsnummer im Doku-Panel)
-    private const MODULE_VERSION = '1.11.0';
+    private const MODULE_VERSION = '1.11.1';
     private const NEWS_ITEMS = [
-        'Open contract for other modules: SGW_GetState() and SGW_GetForecast() now describe themselves with the field contractType (gridsignal) and contract version 1.1. All existing fields stay unchanged. A short guide in German and English (docs folder) explains the states and fields, so that other grid-signal modules can plug into the NRG-Stack as well.',
+        'New optional field region in SGW_GetState(): the postal code the signal applies to (or null for nationwide), so that other modules can pick the right instance when there are several.',
+        'Open contract for other modules: SGW_GetState() and SGW_GetForecast() now describe themselves with the field contractType (gridsignal) and contract version 1.1. All existing fields stay unchanged. A short guide in German and English (in the repository) explains the states and fields, so that other grid-signal modules can plug into the NRG-Stack as well.',
         'Shorter field labels: the data source checkboxes and the postal code now have short labels, the explanations stand in a text line directly below each field.',
         'Now bilingual: form, messages, status texts and variable names are available in English and German and follow the Symcon language.',
         'The traffic-light labels returned by SGW_GetState() ("label") and shown in the tile now follow the language as well. The field names are unchanged.',
@@ -603,10 +605,16 @@ class StromGedachtWidget extends IPSModule
         $ecSignalRaw = $this->ReadPropertyBoolean('EnableEnergyCharts') ? $this->GetOwnValue('ECSignal') : null;
         $ecShareRaw = $this->ReadPropertyBoolean('EnableEnergyCharts') ? $this->GetOwnValue('ECShare') : null;
         $updatedRaw = $this->GetOwnValue('Updated');
+        // Region, für die das Signal gilt (optional, ab 1.2): die Postleitzahl, solange eine Quelle mit PLZ
+        // (StromGedacht, GrünstromIndex) aktiv ist; nur Energy-Charts gilt bundesweit -> null. Damit kann ein
+        // Konsument bei mehreren Instanzen (verschiedene Regionen) die passende wählen.
+        $zip = trim((string) $this->ReadPropertyString('ZipCode'));
+        $region = ($zip !== '' && ($this->ReadPropertyBoolean('EnableStromGedacht') || $this->ReadPropertyBoolean('EnableGSI'))) ? $zip : null;
 
         return [
-            'contractVersion' => '1.1',
+            'contractVersion' => '1.2',
             'contractType'    => self::CONTRACT_TYPE,
+            'region'   => $region,
             'state'    => $state,
             'label'    => $state !== null ? $this->Translate(self::SG_LABELS[$state] ?? 'Unknown') : $this->Translate('StromGedacht disabled'),
             'gsi'      => $gsiRaw !== null ? (float) $gsiRaw : null,
@@ -681,7 +689,7 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.1',
+                'contractVersion' => '1.2',
                 'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'stromgedacht',
                 'from'   => $from,
@@ -725,7 +733,7 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.1',
+                'contractVersion' => '1.2',
                 'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'gsi',
                 'from'   => $from,
@@ -769,7 +777,7 @@ class StromGedachtWidget extends IPSModule
                 continue;
             }
             $entries[] = [
-                'contractVersion' => '1.1',
+                'contractVersion' => '1.2',
                 'contractType'    => self::CONTRACT_TYPE,
                 'source' => 'energycharts',
                 'from'   => $from,

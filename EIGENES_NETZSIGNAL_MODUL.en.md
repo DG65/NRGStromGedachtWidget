@@ -6,7 +6,7 @@ This guide is for developers who have their **own Symcon module for a grid signa
 or a signal from a grid operator) and want to make it visible to the EMS and other NRG-Stack modules. Your module stays a
 standalone module. It does not need StromGedacht Widget or any other NRG-Stack module installed.
 
-It covers the **contract `gridsignal`, version 1.1**. It is offered by StromGedacht Widget (prefix `SGW`) and is
+It covers the **contract `gridsignal`, version 1.2**. It is offered by StromGedacht Widget (prefix `SGW`) and is
 **read-only**: there are no control commands, no write approval and no `failsafeSec`.
 
 ## The principle in three sentences
@@ -27,7 +27,8 @@ not "no".**
 | Field | Required | Meaning |
 |---|---|---|
 | `contractType` | yes | always `'gridsignal'` |
-| `contractVersion` | yes | `'1.1'`. Consumers check the major version (before the dot). If the field is missing, `'1.0'` applies. |
+| `contractVersion` | yes | `'1.2'`. Consumers check the major version (before the dot). If the field is missing, `'1.0'` applies. |
+| `region` | no | postal code (string) the signal applies to, or `null` (nationwide or unknown). Helps the consumer pick the right instance when there are several. If the field is missing, it means "unknown". |
 | `state` | yes | traffic-light state as a number or `null` (see scale below). `null` means: no value known. |
 | `label` | no | display text for the state. It follows the Symcon language and is **for display only**. Always evaluate `state`. |
 | `updated` | yes | Unix time of the last successful update, `0` = never. The consumer uses it to detect stale values. |
@@ -56,7 +57,8 @@ If your signal has a different scale, map it onto these values. `ecSignal` (if d
 ```php
 [
     'contractType'    => 'gridsignal',
-    'contractVersion' => '1.1',
+    'contractVersion' => '1.2',
+    'region'          => '12345',
     'state'           => 1,
     'label'           => 'Green',
     'updated'         => 1794209033
@@ -71,7 +73,7 @@ list**, never an exception.
 | Field | Meaning |
 |---|---|
 | `contractType` | `'gridsignal'` |
-| `contractVersion` | `'1.1'` |
+| `contractVersion` | `'1.2'` |
 | `source` | identifier of your source in lower case, for example `'mygrid'` |
 | `from`, `to` | start and end of the period (Unix time, `from` < `to`), clipped to `[$From, $To]` |
 | `value` | state during the period (float) on the scale of `state` |

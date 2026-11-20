@@ -7,7 +7,7 @@ andere Netzampel oder ein Signal eines Netzbetreibers) und es für das EMS und a
 machen wollen. Das eigene Modul bleibt ein eigenständiges Modul. Es muss weder StromGedacht Widget noch ein anderes
 NRG-Stack-Modul installiert haben.
 
-Gemeint ist der **Vertrag `gridsignal`, Version 1.1**. Er wird vom StromGedacht Widget angeboten (Präfix `SGW`) und ist
+Gemeint ist der **Vertrag `gridsignal`, Version 1.2**. Er wird vom StromGedacht Widget angeboten (Präfix `SGW`) und ist
 **nur lesend**: Es gibt keine Steuerbefehle, keine Schreibfreigabe und kein `failsafeSec`.
 
 ## Das Prinzip in drei Sätzen
@@ -28,7 +28,8 @@ Rückgabe: **ein Array** (kein JSON-String). Pflichtfelder sind markiert. **Fehl
 | Feld | Pflicht | Bedeutung |
 |---|---|---|
 | `contractType` | ja | immer `'gridsignal'` |
-| `contractVersion` | ja | `'1.1'`. Konsumenten prüfen die Hauptversion (vor dem Punkt). Fehlt das Feld, gilt `'1.0'`. |
+| `contractVersion` | ja | `'1.2'`. Konsumenten prüfen die Hauptversion (vor dem Punkt). Fehlt das Feld, gilt `'1.0'`. |
+| `region` | nein | Postleitzahl (String), für die das Signal gilt, oder `null` (bundesweit oder unbekannt). Hilft dem Konsumenten, bei mehreren Instanzen die passende zu wählen. Fehlt das Feld, heißt das „unbekannt“. |
 | `state` | ja | Ampelzustand als Zahl oder `null` (siehe Skala unten). `null` heißt: kein Wert bekannt. |
 | `label` | nein | Anzeigetext zum Zustand. Er folgt der Symcon-Sprache und ist **nur zur Anzeige** gedacht. Zum Auswerten immer `state` nehmen. |
 | `updated` | ja | Unix-Zeit der letzten erfolgreichen Aktualisierung, `0` = noch nie. Daran erkennt der Konsument veraltete Werte. |
@@ -57,7 +58,8 @@ Hat dein Signal eine andere Skala, bilde sie auf diese Werte ab. `ecSignal` (fal
 ```php
 [
     'contractType'    => 'gridsignal',
-    'contractVersion' => '1.1',
+    'contractVersion' => '1.2',
+    'region'          => '12345',
     'state'           => 1,
     'label'           => 'Grün',
     'updated'         => 1794209033
@@ -72,7 +74,7 @@ eine **leere Liste**, nie eine Exception.
 | Feld | Bedeutung |
 |---|---|
 | `contractType` | `'gridsignal'` |
-| `contractVersion` | `'1.1'` |
+| `contractVersion` | `'1.2'` |
 | `source` | Kennung deiner Quelle in Kleinbuchstaben, zum Beispiel `'meinnetz'` |
 | `from`, `to` | Beginn und Ende des Zeitraums (Unix-Zeit, `from` < `to`), auf `[$Von, $Bis]` zugeschnitten |
 | `value` | Zustand im Zeitraum (Float) auf der Skala von `state` |

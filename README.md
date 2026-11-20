@@ -1,7 +1,7 @@
 # StromGedachtWidget
 
 ![Symcon](https://img.shields.io/badge/Symcon-PHPModul-blue)
-![Modul Version](https://img.shields.io/badge/Modul_Version-1.11.0-blue)
+![Modul Version](https://img.shields.io/badge/Modul_Version-1.11.1-blue)
 ![Symcon Version](https://img.shields.io/badge/Symcon_Version-9.0%2B-blue)
 ![License](https://img.shields.io/badge/License-PolyForm_Noncommercial_1.0.0-lightgrey)
 [![Check Style](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml/badge.svg)](https://github.com/DG65/NRGStromGedachtWidget/actions/workflows/check-style.yml)
@@ -139,16 +139,17 @@ Weitere Funktionen verwalten die Automationen (v. a. für die Kachel gedacht, si
 ### NRG-Stack-Vertrag (für andere Module, z. B. EMS)
 
 ```php
-// Aktueller Zustand aller aktivierten Quellen (Typ gridsignal, contractVersion 1.1)
+// Aktueller Zustand aller aktivierten Quellen (Typ gridsignal, contractVersion 1.2)
 SGW_GetState(int $InstanzID): array
-// -> ['contractType' => 'gridsignal', 'contractVersion' => '1.1', 'state' => int|null, 'label' => string,
+// -> ['contractType' => 'gridsignal', 'contractVersion' => '1.2', 'region' => string|null, 'state' => int|null, 'label' => string,
 //     'gsi' => float|null, 'ecSignal' => int|null, 'ecShare' => float|null, 'updated' => int]
 // Felder sind null, wenn die jeweilige Quelle in dieser Instanz nicht aktiviert ist.
+// region = Postleitzahl, für die das Signal gilt (null = bundesweit/unbekannt, z. B. nur Energy-Charts aktiv).
 // Die Feldnamen sind in jeder Sprache gleich; 'label' ist Anzeigetext und folgt der Symcon-Sprache.
 
 // Vorschau im Zeitraum [$Von, $Bis] (Unix-Timestamps), je aktivierter Quelle eine Liste
 SGW_GetForecast(int $InstanzID, int $Von, int $Bis): array
-// -> Liste von ['contractType' => 'gridsignal', 'contractVersion' => '1.1', 'source' => 'stromgedacht'|'gsi'|'energycharts', 'from' => int, 'to' => int, 'value' => float]
+// -> Liste von ['contractType' => 'gridsignal', 'contractVersion' => '1.2', 'source' => 'stromgedacht'|'gsi'|'energycharts', 'from' => int, 'to' => int, 'value' => float]
 // Horizont/Raster unterscheiden sich je Quelle (API-Eigenheit, nicht vereinheitlicht, um keine
 // falsche Genauigkeit vorzutäuschen):
 //   - 'stromgedacht': max. 48 h ab jetzt, unregelmäßige Zustands-Segmente statt festem Raster.
@@ -160,7 +161,7 @@ SGW_GetForecast(int $InstanzID, int $Von, int $Bis): array
 // oder die jeweilige API nicht erreichbar war — die anderen Quellen liefern unabhängig davon.
 ```
 
-Seit 1.11.0 beschreiben sich beide Antworten selbst (`contractType` = `gridsignal`, `contractVersion` = `1.1`); alle bisherigen Felder sind unverändert. Wer ein **eigenes Netzsignal-Modul** an den NRG-Stack anbinden möchte, findet Funktionen, Felder und Skala in der [Anleitung](docs/EIGENES_NETZSIGNAL_MODUL.md) (englisch: [guide](docs/EIGENES_NETZSIGNAL_MODUL.en.md)).
+Seit 1.11.0 beschreiben sich beide Antworten selbst (`contractType` = `gridsignal`, `contractVersion` = `1.2`, seit 1.11.1 mit dem optionalen Feld `region`); alle bisherigen Felder sind unverändert. Wer ein **eigenes Netzsignal-Modul** an den NRG-Stack anbinden möchte, findet Funktionen, Felder und Skala in der [Anleitung](EIGENES_NETZSIGNAL_MODUL.md) (englisch: [guide](EIGENES_NETZSIGNAL_MODUL.en.md)).
 
 StromGedacht ist dabei eine **Empfehlung, keine Pflicht** — ein konsumierendes Modul (z. B. das EMS) darf sie überstimmen, wenn gesetzliche Vorgaben (§14a), Direktvermarktung oder Nutzerkomfort dagegenstehen.
 
